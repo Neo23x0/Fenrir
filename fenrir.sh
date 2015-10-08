@@ -5,7 +5,7 @@
 # Florian Roth
 # October 2015
 
-VERSION="0.3.0b"
+VERSION="0.4.0b"
 
 # Settings
 HASH_IOC_FILE=hash-iocs.txt
@@ -14,12 +14,15 @@ FILENAME_IOCS=filename-iocs.txt
 C2_IOCS=c2-iocs.txt
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1
+DO_C2_CHECK=0
 declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'asp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys'); # lower-case
+declare -a FORCED_STRING_MATCH_DIRS=('/var/log/');  # files in these directories will be checked with
+                                                    # string grep regradless of their size and extension
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/mnt/' '/media/');
 MIN_HOT_EPOCH=1444160000 # minimum Unix epoch for hot time frame e.g. 1444160522
 MAX_HOT_EPOCH=1444160400 # maximum Unix epoch for hot time frame e.g. 1444160619
 CHECK_FOR_HOT_TIMEFRAME=0
-DEBUG=1
+DEBUG=0
 
 # Code
 declare -a hash_iocs
@@ -39,15 +42,28 @@ function scan_dirs
     do
         if [[ -f "${file_name}" ]]; then
 
-            # Skip (-f filename didn't work for '.' on one machine)
+            # Skips ---------------------------------------------------
             if [[ "$file_name" == "." ]]; then
                 continue
             fi
 
-            # Evaluations
+            # Debug Output --------------------------------------------
+            if [ $DEBUG -eq 1 ]; then
+                echo "Scanning $file_path ..."
+            fi
+
+            # Marker --------------------------------------------------
+            DO_STRING_CHECK=1
+            DO_HASH_CHECK=1
+            DO_DATE_CHECK=1
+            DO_FILENAME_CHECK=1
+
+            # Evaluations ---------------------------------------------
             current_dir=`pwd`
             file_path="$current_dir/$file_name"
             extension="${file_name##*.}"
+
+            # Checks to disable modules -------------------------------
 
             # Excluded Directories
             result=$(check_dir "$file_path")
@@ -55,54 +71,75 @@ function scan_dirs
                 if [ $DEBUG -eq 1 ]; then
                     echo "Skipping $file_path due to exclusion ..."
                 fi
-                continue
+                DO_STRING_CHECK=0
+                DO_HASH_CHECK=0
+                DO_DATE_CHECK=0
+                DO_FILENAME_CHECK=0
             fi
 
-            # Extension Check
+            # Exclude Extensions
             if [ $CHECK_ONLY_RELEVANT_EXTENSIONS -eq 1 ]; then
                 result=$(check_extension "$extension")
                 if [ $result -ne 1 ]; then
                     if [ $DEBUG -eq 1 ]; then
-                        echo "Skipping $file_path due to irrelevant extension ..."
+                        echo "Deactivating some checks on $file_path due to irrelevant extension ..."
                     fi
-                    continue
+                DO_STRING_CHECK=0
+                DO_HASH_CHECK=0
                 fi
             fi
-
-            # File Name Check
-            if [ $DEBUG -eq 1 ]; then
-                echo "Scanning $file_path ..."
-            fi
-            check_filename "$file_path"
 
             # Check Size
             filesize=$(du -k "$file_name" | cut -f1)
-            # echo "$filesize $f"
-
             if [ $filesize -gt $MAX_FILE_SIZE ]; then
                 if [ $DEBUG -eq 1 ]; then
-                    echo "Skipping file $file_name due to size"
+                    echo "Deactivating some checks on $file_name due to size"
                 fi
-                continue
+                DO_STRING_CHECK=0
+                DO_HASH_CHECK=0
             fi
 
-            # Check for malicious strings in file
-            check_string "$file_name"
+            # Checks to include modules -------------------------------
 
-            # Check for malicious hashes
-            md5=$(md5sum "$file_name" 2> /dev/null | cut -f1 -d' ')
-            sha1=$(sha1sum "$file_name" 2> /dev/null | cut -f1 -d' ')
-            sha256=$(shasum -a 256 "$file_name" 2> /dev/null | cut -f1 -d' ')
-            #check_hash "$md5" "$file_path"
-            #check_hash "$sha1" "$file_path"
-            #check_hash "$sha256" "$file_path"
-            check_hashes "$md5" "$sha1" "$sha256" "$file_path"
+            # Forced string check directory
+            for fsm_dir in ${FORCED_STRING_MATCH_DIRS[@]};
+            do
+                # echo "Checking if $ex_dir is in $dir"
+                if [ "${file_path/$fsm_dir}" != "$file_path" ]; then
+                    DO_STRING_CHECK=1
+                    if [ $DEBUG -eq 1 ]; then
+                        echo "Activating string check on $file_name"
+                    fi
+                fi
+            done
 
-            # Check Date
-            if [ $CHECK_FOR_HOT_TIMEFRAME -eq 1 ]; then
+            # Checks --------------------------------------------------
+
+            # File Name Check
+            if [ $DO_FILENAME_CHECK -eq 1 ]; then
+                check_filename "$file_path"
+            fi
+
+            # String Check
+            if [ $DO_STRING_CHECK -eq 1 ]; then
+                check_string "$file_name" "$file_path" "$extension"
+            fi
+
+            # Hash Check
+            if [ $DO_HASH_CHECK -eq 1 ]; then
+                md5=$(md5sum "$file_name" 2> /dev/null | cut -f1 -d' ')
+                sha1=$(sha1sum "$file_name" 2> /dev/null | cut -f1 -d' ')
+                sha256=$(shasum -a 256 "$file_name" 2> /dev/null | cut -f1 -d' ')
+                check_hashes "$md5" "$sha1" "$sha256" "$file_path"
+            fi
+
+            # Date Check
+            if [ $CHECK_FOR_HOT_TIMEFRAME -eq 1 -a $DO_DATE_CHECK -eq 1 ]; then
                 check_date "$file_name" "$file_path"
             fi
         fi
+
+        # Parse subdirectories
         if [[ -d "${file_name}" ]]; then
             cd "${file_name}"
             scan_dirs $(ls -1 ".")
@@ -158,14 +195,45 @@ function check_hashes
 
 function check_string
 {
+    local filename=$1
+    local filepath=$2
+    local extension=$3
+    local varlog="/var/log"
+    # Standard Grep
     for string in ${string_iocs[@]};
     do
         # echo "Greping $string in $1"
-        match=$(grep "$string" "$1")
+        match=$(grep "$string" "$filename" 2> /dev/null)
         if [ "$match" != "" ]; then
-            echo "[!] String match found FILE: $1 STRING: $string"
+            echo "[!] String match found FILE: $filepath STRING: $string TYPE: plain"
         fi
     done
+    # Try zgrep on gz files below /var/log
+    if [ "$extension" == "gz" -o "$extension" == "Z" -o "$extension" == "zip" ]; then
+        if [ "${filepath/$varlog}" != "$filepath" ]; then
+            for string in ${string_iocs[@]};
+            do
+                # echo "Greping $string in $1"
+                match=$(zgrep "$string" "$filename" 2> /dev/null)
+                if [ "$match" != "" ]; then
+                    echo "[!] String match found FILE: $filepath STRING: $string TYPE: gzip"
+                fi
+            done
+        fi
+    fi
+    # Try bzgrep on bz files below /var/log
+    if [ "$extension" == "bz" -o "$extension" == "bz2" ]; then
+        if [ "${filepath/$varlog}" != "$filepath" ]; then
+            for string in ${string_iocs[@]};
+            do
+                # echo "Greping $string in $1"
+                match=$(bzgrep "$string" "$filename" 2> /dev/null)
+                if [ "$match" != "" ]; then
+                    echo "[!] String match found FILE: $filepath STRING: $string TYPE: bzip2"
+                fi
+            done
+        fi
+    fi
 }
 
 function check_filename
@@ -367,7 +435,9 @@ echo "[+] Reading C2 IOCs ..."
 read_c2_iocs
 
 # Now scan the given first parameter
-echo "[+] Scanning for C2 ..."
-scan_c2
+if [ $DO_C2_CHECK -eq 1 ]; then
+    echo "[+] Scanning for C2 ..."
+    scan_c2
+fi
 echo "[+] Scanning path ..."
 scan_dirs $1

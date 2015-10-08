@@ -78,6 +78,10 @@ Detect C2 connections
 
 ![Ansible Playbook](./screens/fenrir4.png)
 
+Detect strings in GZIP packed log files
+
+![Strings in GZP Logs](./screens/fenrir5.png)
+
 Configuration
 
 ![Configuration](./screens/fenrir2.png)
