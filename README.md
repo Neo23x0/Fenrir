@@ -17,6 +17,14 @@ Fenrir is a simple IOC scanner bash script. It allows scanning Linux/Unix/OSX sy
 - Hot Time Frame
 
    using stat in different modes - define min and max epoch time stamp and get all files that have been created in between
+   
+Basic characteristics:
+- Bash Script
+- No installation or agent needed
+- Uses common tools to extract attributes (e.g. md5sum, grep, stat in different modes)
+- Intended to run on any Linux / Unix / OS X with Bash
+- Low footprint - Ansible playbook with RAM drive solution
+- Smart exclusions (file size, extension, certain directories) speeds up the scan process
 
 # Why Fenrir?
 FENRIR is the 3rd tool after THOR and LOKI. [THOR](http://www.bsk-consulting.de/apt-scanner-thor/) is our full featured APT Scanner with many modules and export types for corporate customers. [LOKI](https://github.com/Neo23x0/Loki) is a free and open IOC scanner that uses [YARA](https://plusvic.github.io/yara/) as signature format. 
@@ -70,6 +78,10 @@ Ansible Playbook
 Stat issue (regarding the CREATED file stamp on Linux file systems)
 
 ![Stat issue](./screens/stat1.png)
+
+# Known Issues
+
+The "string detection" function needs a more effective way to check files for certain strings. I already tried to concatenate the string IOC array to a long expression joined with " -e " in order to "pre-grep" the file with "grep -e string1 -e string2 -e string3 $filename" but didn't get it to work.  
 
 # Contact 
 
