@@ -11,12 +11,13 @@ VERSION="0.2.0b"
 HASH_IOC_FILE=hash-iocs.txt
 STRING_IOCS=string-iocs.txt
 FILENAME_IOCS=filename-iocs.txt
-MAX_FILE_SIZE=2000000000 # max file size to check in kilobyte, default 2 MB
+MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1
 declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'asp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys'); # lower-case
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/mnt/' '/media/');
 MIN_HOT_EPOCH=1444160000 # minimum Unix epoch for hot time frame e.g. 1444160522
 MAX_HOT_EPOCH=1444160400 # maximum Unix epoch for hot time frame e.g. 1444160619
+CHECK_FOR_HOT_TIMEFRAME=0
 DEBUG=1
 
 # Code
@@ -96,8 +97,9 @@ function scan_dirs
             check_hashes "$md5" "$sha1" "$sha256" "$file_path"
 
             # Check Date
-            check_date "$file_name" "$file_path"
-
+            if [ $CHECK_FOR_HOT_TIMEFRAME -eq 1 ]; then
+                check_date "$file_name" "$file_path"
+            fi
         fi
         if [[ -d "${file_name}" ]]; then
             cd "${file_name}"
