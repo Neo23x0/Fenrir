@@ -27,14 +27,14 @@ We faced the problem of checking more than 100 different Linux systems for certa
 
 Fenrir is still 'testing'. Please report back errors (and solutions) via the "Issues" section here on github. 
 
-If you find a better / more solid / less error-prone solution to the evaluations in the script, please report them back. I am not a full-time bash programmer so I'd expect some room to improvement. 
+If you find a better / more solid / less error-prone solution to the evaluations in the script, please report them back. I am not a full-time bash programmer so I'd expect some room for improvement. 
 
 # Usage
 
 ```
-    Usage: ./fenrir.sh DIRECTORY
+Usage: ./fenrir.sh DIRECTORY
  
-    DIRECTORY - Start point of the recursive scan
+DIRECTORY - Start point of the recursive scan
 ```
 
 All settings can be configured in the header of the script.
