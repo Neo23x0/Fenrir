@@ -91,4 +91,4 @@ fb56ce4b853a94ae3f64367c02ec7e31;Symantec Waterbug Attack http://goo.gl/9Tlk90 m
 fb56ce4b853a94ae3f64367c02ec7e31;Symantec Waterbug Attack http://goo.gl/9Tlk90 dc1.exe
 fb56ce4b853a94ae3f64367c02ec7e31;Symantec Waterbug Attack http://goo.gl/9Tlk90 svcmgr.exe
 98992c12e58745854a885f9630124d3e;Symantec Waterbug Attack http://goo.gl/9Tlk90 msx32.exe Used to encrypt file (supplied as argument on command line) using common Trojan.Turla XOR key, Output written to [FILE NAME].XOR
-# END
+# END - DO NOT REMOVE

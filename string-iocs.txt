@@ -1,2 +1,2 @@
 <%eval request("ice")%>
-# END
+# END - DO NOT REMOVE - contents passed to grep - double escape square brackets
