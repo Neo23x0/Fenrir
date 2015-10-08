@@ -25,6 +25,10 @@ The problem with both predecessors is that both have certain requirements on the
 
 We faced the problem of checking more than 100 different Linux systems for certain Indicators of Compromise (IOCs) without installing an agent or software packages. We already had an [Ansible](http://www.ansible.com/) playbook for the distribution of THOR on a defined set of Linux remote systems. This playbook creates a RAM drive on the remote system, copies the local program binary to the remote system, runs it and retrieves the logs afterwards. This ensures that the program's footprint on the remote system is minimal. I adapted the Ansible playbook for Fenrir.
 
+Fenrir is still 'testing'. Please report back errors (and solutions) via the "Issues" section here on github. 
+
+If you find a better / more solid / less error-prone solution to the evaluations in the script, please report them back. I am not a full-time bash programmer so I'd expect some room to improvement. 
+
 # Usage
 
 ```
@@ -62,3 +66,7 @@ Configuration
 Ansible Playbook
 
 ![Ansible Playbook](./screens/fenrir3.png)
+
+# Contact 
+
+via Twitter @Cyb3rOps
