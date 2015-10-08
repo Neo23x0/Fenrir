@@ -25,7 +25,7 @@ declare -a hash_ioc_description
 declare -a string_iocs
 declare -a filename_iocs
 declare grep_strings
-
+$
 function scan_dirs
 {
     # Save field separator

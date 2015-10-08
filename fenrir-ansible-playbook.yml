@@ -1,0 +1,22 @@
+---
+- hosts: Linux
+  remote_user: root
+
+  tasks:
+    - name: Create folder for temporary RAM drive
+      command: mkdir /mnt/temp_ram creates=/mnt/temp_ram
+    - name: Create Fenrir RAM drive on target
+      command: mount -t ramfs -o size=30M ramfs /mnt/temp_ram/
+    - name: Copy Fenrir to RAM drive
+      copy: src=/home/control/Ansible/Fenrir/ dest=/mnt/temp_ram/
+    - name: Make Fenrir Executeable
+      file: path=/mnt/temp_ram/fenrir.sh state=touch mode="0555"
+    - name: Execute Fenrir
+      command: /mnt/temp_ram/fenrir.sh / > /mnt/temp_ram/fenrir.log
+    - name: Fetch Log file
+      fetch: src=/mnt/temp_ram/fenrir.log dest=./
+    - name: Unmount temporary RAM drive
+      command: umount /mnt/temp_ram/
+    - name: Delete folder for temporary RAM drive
+      command: rmdir /mnt/temp_ram/
+
