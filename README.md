@@ -67,6 +67,10 @@ Ansible Playbook
 
 ![Ansible Playbook](./screens/fenrir3.png)
 
+Stat issue (regarding the CREATED file stamp on Linux file systems)
+
+![Stat issue](./screens/stat1.png)
+
 # Contact 
 
 via Twitter @Cyb3rOps
