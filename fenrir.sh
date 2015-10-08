@@ -5,12 +5,13 @@
 # Florian Roth
 # October 2015
 
-VERSION="0.2.0b"
+VERSION="0.3.0b"
 
 # Settings
 HASH_IOC_FILE=hash-iocs.txt
 STRING_IOCS=string-iocs.txt
 FILENAME_IOCS=filename-iocs.txt
+C2_IOCS=c2-iocs.txt
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1
 declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'asp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys'); # lower-case
@@ -25,8 +26,9 @@ declare -a hash_iocs
 declare -a hash_ioc_description
 declare -a string_iocs
 declare -a filename_iocs
+declare -a c2_iocs
 declare grep_strings
-$
+
 function scan_dirs
 {
     # Save field separator
@@ -221,6 +223,32 @@ function check_dir
     echo $result
 }
 
+# Analysis
+
+function scan_c2
+{
+    oldIFS=$IFS
+    IFS=$'\n'
+    lsof_output=$(lsof -i)
+    for lsof_line in ${lsof_output}; do
+        for c2 in ${c2_iocs[@]}; do
+            if [ "${lsof_line/$c2}" != "$lsof_line" ]; then
+                echo "[!] C2 server found in lsof output SERVER: $c2 LSOF_LINE: $lsof_line"
+            fi
+        done
+    done
+    lsof_output=$(lsof -i -n)
+    for lsof_line in ${lsof_output}; do
+        for c2 in ${c2_iocs[@]}; do
+            # echo "$lsof_line - $c2"
+            if [ "${lsof_line/$c2}" != "$lsof_line" ]; then
+                echo "[!] C2 server found in lsof output SERVER: $c2 LSOF_LINE: $lsof_line"
+            fi
+        done
+    done
+    IFS=$oldIFS
+}
+
 # Helpers -------------------------------------------------------------
 
 function evaluate_stat_mode
@@ -244,7 +272,7 @@ function read_hashes_iocs
     # Save field separator
     oldIFS=$IFS
     IFS=$'\n'
-    index=0
+    local index=0
     while read line ; do
         hash=$(echo "$line" | cut -f1 -d';')
         description=$(echo "$line" | cut -f2 -d';')
@@ -261,7 +289,7 @@ function read_string_iocs
     # Save field separator
     oldIFS=$IFS
     IFS=$'\n'
-    index=0
+    local index=0
     while read line ; do
         string_iocs[$index]="$line"
         # echo "$line"
@@ -278,12 +306,26 @@ function read_filename_iocs
     # Save field separator
     oldIFS=$IFS
     IFS=$'\n'
-    index=0
+    local index=0
     while read line ; do
         filename_iocs[$index]="$line"
         # echo "$line"
         index=$(($index+1))
     done < $FILENAME_IOCS
+    IFS=$oldIFS
+}
+
+function read_c2_iocs
+{
+    # Save field separator
+    oldIFS=$IFS
+    IFS=$'\n'
+    local index=0
+    while read line ; do
+        c2_iocs[$index]="$line"
+        # echo "$line"
+        index=$(($index+1))
+    done < $C2_IOCS
     IFS=$oldIFS
 }
 
@@ -309,7 +351,7 @@ if [ "$#" -ne 1 ]; then
 fi
 
 # Non-static global variables
-stat_mode=1
+declare stat_mode=1
 
 # Evaluate which stat mode to use
 evaluate_stat_mode
@@ -321,7 +363,11 @@ echo "[+] Reading String IOCs ..."
 read_string_iocs
 echo "[+] Reading Filename IOCs ..."
 read_filename_iocs
+echo "[+] Reading C2 IOCs ..."
+read_c2_iocs
 
 # Now scan the given first parameter
+echo "[+] Scanning for C2 ..."
+scan_c2
 echo "[+] Scanning path ..."
 scan_dirs $1

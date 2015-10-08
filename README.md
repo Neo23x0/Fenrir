@@ -2,6 +2,7 @@
 Simple Bash IOC Scanner
 
 Fenrir is a simple IOC scanner bash script. It allows scanning Linux/Unix/OSX systems for the following Indicators of Compromise (IOCs):
+
 - Hashes
 
    MD5, SHA1 and SHA256 (using md5sum, sha1sum, sha -a 256)
@@ -13,6 +14,10 @@ Fenrir is a simple IOC scanner bash script. It allows scanning Linux/Unix/OSX sy
 - Strings
 
    grep in files
+   
+- C2 Server
+   
+   checking for C2 server strings in 'lsof -i' and 'lsof -i -n' output  
 
 - Hot Time Frame
 
@@ -52,7 +57,9 @@ All settings can be configured in the header of the script.
 # Step by Step
 
 What Fenrir does is:
+- Reads the IOC files
 - Takes a parameter as starting directory for the recursive walk
+- Checks C2 servers in lsof output
 - Checks for directory exclusions (configurable in the script header)
 - Checks for certain file extensions to check (configurable in the script header)
 - Checks the file name (full path) for matches in IOC files
@@ -66,6 +73,10 @@ What Fenrir does is:
 Scan Run showing the different match types on a demo directory. 
 
 ![Scan Run](./screens/fenrir1.png)
+
+Detect C2 connections
+
+![Ansible Playbook](./screens/fenrir4.png)
 
 Configuration
 
