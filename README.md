@@ -2,10 +2,21 @@
 Simple Bash IOC Scanner
 
 Fenrir is a simple IOC scanner bash script. It allows scanning Linux/Unix/OSX systems for the following Indicators of Compromise (IOCs):
-- Hashes (MD5, SHA1, SHA256)
-- File Names (string - checked for substring of the full path, e.g. "temp/p.exe" in "/var/temp/p.exe")
-- Strings (grep in files)
-- Hot Time Frame (define min and max epoch time stamp and get all files that have been created in between)
+- Hashes
+
+   MD5, SHA1 and SHA256 (using md5sum, sha1sum, sha -a 256)
+
+- File Names 
+
+   string - checked for substring of the full path, e.g. "temp/p.exe" in "/var/temp/p.exe"
+
+- Strings
+
+   grep in files
+
+- Hot Time Frame
+
+   using stat in different modes - define min and max epoch time stamp and get all files that have been created in between
 
 # Why Fenrir?
 FENRIR is the 3rd tool after THOR and LOKI. [THOR](http://www.bsk-consulting.de/apt-scanner-thor/) is our full featured APT Scanner with many modules and export types for corporate customers. [LOKI](https://github.com/Neo23x0/Loki) is a free and open IOC scanner that uses [YARA](https://plusvic.github.io/yara/) as signature format. 
