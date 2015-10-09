@@ -5,7 +5,7 @@
 # Florian Roth
 # October 2015
 
-VERSION="0.4.0b"
+VERSION="0.4.1b"
 
 # Settings
 HASH_IOC_FILE="./hash-iocs.txt"
@@ -200,8 +200,17 @@ function check_string
     local filepath=$2
     local extension=$3
     local varlog="/var/log"
+
+    # Decide which strings to look for
+    # Default
+    check_strings=("${string_iocs[@]}")
+    if [ "${filepath/$varlog}" != "$filepath" ]; then
+        # Add C2 iocs if directory is log directory
+        check_strings=( "${string_iocs[@]}" "${c2_iocs[@]}" )
+    fi
+
     # Standard Grep
-    for string in "${string_iocs[@]}";
+    for string in "${check_strings[@]}";
     do
         # echo "Greping $string in $1"
         match=$(grep "$string" "$filename" 2> /dev/null)
@@ -212,7 +221,7 @@ function check_string
     # Try zgrep on gz files below /var/log
     if [ "$extension" == "gz" ] || [ "$extension" == "Z" ] || [ "$extension" == "zip" ]; then
         if [ "${filepath/$varlog}" != "$filepath" ]; then
-            for string in "${string_iocs[@]}";
+            for string in "${check_strings[@]}";
             do
                 # echo "Greping $string in $1"
                 match=$(zgrep "$string" "$filename" 2> /dev/null)
@@ -225,7 +234,7 @@ function check_string
     # Try bzgrep on bz files below /var/log
     if [ "$extension" == "bz" ] || [ "$extension" == "bz2" ]; then
         if [ "${filepath/$varlog}" != "$filepath" ]; then
-            for string in "${string_iocs[@]}";
+            for string in "${check_strings[@]}";
             do
                 # echo "Greping $string in $1"
                 match=$(bzgrep "$string" "$filename" 2> /dev/null)
