@@ -15,9 +15,10 @@ C2_IOCS="./c2-iocs.txt"
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1
 DO_C2_CHECK=0
-declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'asp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys'); # lower-case
-declare -a FORCED_STRING_MATCH_DIRS=('/var/log/');  # files in these directories will be checked with
-                                                    # string grep regradless of their size and extension
+declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'asp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys'); # use lower-case
+# files in these directories will be checked with string grep
+# regradless of their size and extension
+declare -a FORCED_STRING_MATCH_DIRS=('/var/log/' '/etc/hosts');
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/mnt/' '/media/');
 MIN_HOT_EPOCH=1444160000 # minimum Unix epoch for hot time frame e.g. 1444160522
 MAX_HOT_EPOCH=1444160400 # maximum Unix epoch for hot time frame e.g. 1444160619
