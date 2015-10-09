@@ -38,7 +38,7 @@ function scan_dirs
     # Scan Dir
     scandir=$1
     # Cleanup trailing "/" in the most compatible way
-    if [ "${scandir: -1}" == "/" ]; then
+    if [ "${scandir: -1}" == "/" ] && [ "${#scandir}" -gt 1 ]; then
         scandir="${scandir:0:${#scandir}-1}"
     fi
     # Loop through files
