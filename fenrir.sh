@@ -8,10 +8,10 @@
 VERSION="0.4.0b"
 
 # Settings
-HASH_IOC_FILE=hash-iocs.txt
-STRING_IOCS=string-iocs.txt
-FILENAME_IOCS=filename-iocs.txt
-C2_IOCS=c2-iocs.txt
+HASH_IOC_FILE="./hash-iocs.txt"
+STRING_IOCS="./string-iocs.txt"
+FILENAME_IOCS="./filename-iocs.txt"
+C2_IOCS="./c2-iocs.txt"
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1
 DO_C2_CHECK=0
@@ -30,7 +30,7 @@ declare -a hash_ioc_description
 declare -a string_iocs
 declare -a filename_iocs
 declare -a c2_iocs
-declare grep_strings
+# declare grep_strings
 
 function scan_dirs
 {
@@ -59,7 +59,7 @@ function scan_dirs
             DO_FILENAME_CHECK=1
 
             # Evaluations ---------------------------------------------
-            current_dir=`pwd`
+            current_dir=$(pwd)
             file_path="$current_dir/$file_name"
             extension="${file_name##*.}"
 
@@ -67,7 +67,7 @@ function scan_dirs
 
             # Excluded Directories
             result=$(check_dir "$file_path")
-            if [ $result -eq 1 ]; then
+            if [ "${result}" -eq 1 ]; then
                 if [ $DEBUG -eq 1 ]; then
                     echo "Skipping $file_path due to exclusion ..."
                 fi
@@ -80,7 +80,7 @@ function scan_dirs
             # Exclude Extensions
             if [ $CHECK_ONLY_RELEVANT_EXTENSIONS -eq 1 ]; then
                 result=$(check_extension "$extension")
-                if [ $result -ne 1 ]; then
+                if [ "${result}" -ne 1 ]; then
                     if [ $DEBUG -eq 1 ]; then
                         echo "Deactivating some checks on $file_path due to irrelevant extension ..."
                     fi
@@ -91,7 +91,7 @@ function scan_dirs
 
             # Check Size
             filesize=$(du -k "$file_name" | cut -f1)
-            if [ $filesize -gt $MAX_FILE_SIZE ]; then
+            if [ "${filesize}" -gt $MAX_FILE_SIZE ]; then
                 if [ $DEBUG -eq 1 ]; then
                     echo "Deactivating some checks on $file_name due to size"
                 fi
@@ -102,7 +102,7 @@ function scan_dirs
             # Checks to include modules -------------------------------
 
             # Forced string check directory
-            for fsm_dir in ${FORCED_STRING_MATCH_DIRS[@]};
+            for fsm_dir in "${FORCED_STRING_MATCH_DIRS[@]}";
             do
                 # echo "Checking if $ex_dir is in $dir"
                 if [ "${file_path/$fsm_dir}" != "$file_path" ]; then
@@ -134,16 +134,17 @@ function scan_dirs
             fi
 
             # Date Check
-            if [ $CHECK_FOR_HOT_TIMEFRAME -eq 1 -a $DO_DATE_CHECK -eq 1 ]; then
+            if [ $CHECK_FOR_HOT_TIMEFRAME -eq 1 ] && [ $DO_DATE_CHECK -eq 1 ]; then
                 check_date "$file_name" "$file_path"
             fi
         fi
 
         # Parse subdirectories
         if [[ -d "${file_name}" ]]; then
-            cd "${file_name}"
-            scan_dirs $(ls -1 ".")
-            cd ..
+            (
+              cd "${file_name}" || exit 1
+              scan_dirs "$(ls -1 ".")"
+            )
         fi
     done
     IFS=$oldIFS
@@ -156,14 +157,14 @@ function check_hash
     index=0
     filehash=$1
     filename=$2
-    for hash in ${hash_iocs[@]};
+    for hash in "${hash_iocs[@]}";
     do
         # echo "Comparing $hash with $1"
         if [ "$filehash" == "$hash" ]; then
             description=${hash_ioc_description[$index]}
             echo "[!] Hash match found FILE: $filename HASH: $hash DESCRIPTION: $description"
         fi
-        index=$(($index+1))
+        index=$((index+1))
     done
 }
 
@@ -174,7 +175,7 @@ function check_hashes
     local sha1=$2
     local sha256=$3
     local filename=$4
-    for hash in ${hash_iocs[@]};
+    for hash in "${hash_iocs[@]}";
     do
         # echo "Comparing $hash with $md5"
         if [ "$md5" == "$hash" ]; then
@@ -189,7 +190,7 @@ function check_hashes
             description=${hash_ioc_description[$index]}
             echo "[!] Hash match found FILE: $filename HASH: $hash DESCRIPTION: $description"
         fi
-        index=$(($index+1))
+        index=$((index+1))
     done
 }
 
@@ -200,7 +201,7 @@ function check_string
     local extension=$3
     local varlog="/var/log"
     # Standard Grep
-    for string in ${string_iocs[@]};
+    for string in "${string_iocs[@]}";
     do
         # echo "Greping $string in $1"
         match=$(grep "$string" "$filename" 2> /dev/null)
@@ -209,9 +210,9 @@ function check_string
         fi
     done
     # Try zgrep on gz files below /var/log
-    if [ "$extension" == "gz" -o "$extension" == "Z" -o "$extension" == "zip" ]; then
+    if [ "$extension" == "gz" ] || [ "$extension" == "Z" ] || [ "$extension" == "zip" ]; then
         if [ "${filepath/$varlog}" != "$filepath" ]; then
-            for string in ${string_iocs[@]};
+            for string in "${string_iocs[@]}";
             do
                 # echo "Greping $string in $1"
                 match=$(zgrep "$string" "$filename" 2> /dev/null)
@@ -222,9 +223,9 @@ function check_string
         fi
     fi
     # Try bzgrep on bz files below /var/log
-    if [ "$extension" == "bz" -o "$extension" == "bz2" ]; then
+    if [ "$extension" == "bz" ] || [ "$extension" == "bz2" ]; then
         if [ "${filepath/$varlog}" != "$filepath" ]; then
-            for string in ${string_iocs[@]};
+            for string in "${string_iocs[@]}";
             do
                 # echo "Greping $string in $1"
                 match=$(bzgrep "$string" "$filename" 2> /dev/null)
@@ -238,7 +239,7 @@ function check_string
 
 function check_filename
 {
-    for filename in ${filename_iocs[@]};
+    for filename in "${filename_iocs[@]}";
     do
         if [ "${1/$filename}" != "$1" ]; then
             echo "[!] Filename match found FILE: $1 INDICATOR: $filename"
@@ -248,16 +249,16 @@ function check_filename
 
 function check_extension
 {
-    local extension=$(echo $1 | tr '[:upper:]' '[:lower:]')
+    extension=$(echo "$1" | tr '[:upper:]' '[:lower:]')
     result=0
-    for ext in ${RELEVANT_EXTENSIONS[@]};
+    for ext in "${RELEVANT_EXTENSIONS[@]}";
     do
         # echo "Comparing $extension with $ext"
         if [ "$extension" == "$ext" ]; then
             result=1
         fi
     done
-    echo $result
+    echo "$result"
 }
 
 function check_date
@@ -265,14 +266,14 @@ function check_date
     local filename="$1"
     local filepath="$2"
     local file_epoch=123 # dummy value
-    if [ $stat_mode -eq 1 ]; then
+    if [ "$stat_mode" -eq 1 ]; then
         file_epoch=$(stat -c '%Z' "$1")
     else
         local st_ctime="$file_epoch"
-        eval $(stat -s "$1")
+        eval "$(stat -s "$1")"
         file_epoch="$st_ctime"
     fi
-    if [ $file_epoch -gt $MIN_HOT_EPOCH -a $file_epoch -lt $MAX_HOT_EPOCH ]; then
+    if [ "$file_epoch" -gt $MIN_HOT_EPOCH ] && [ "$file_epoch" -lt $MAX_HOT_EPOCH ]; then
         echo "[!] File changed/created in hot time frame FILE: $filepath EPOCH: $file_epoch"
     fi
 }
@@ -281,7 +282,7 @@ function check_dir
 {
     dir=$1
     result=0
-    for ex_dir in ${EXCLUDED_DIRS[@]};
+    for ex_dir in "${EXCLUDED_DIRS[@]}";
     do
         # echo "Checking if $ex_dir is in $dir"
         if [ "${dir/$ex_dir}" != "$dir" ]; then
@@ -299,7 +300,7 @@ function scan_c2
     IFS=$'\n'
     lsof_output=$(lsof -i)
     for lsof_line in ${lsof_output}; do
-        for c2 in ${c2_iocs[@]}; do
+        for c2 in "${c2_iocs[@]}"; do
             if [ "${lsof_line/$c2}" != "$lsof_line" ]; then
                 echo "[!] C2 server found in lsof output SERVER: $c2 LSOF_LINE: $lsof_line"
             fi
@@ -307,7 +308,7 @@ function scan_c2
     done
     lsof_output=$(lsof -i -n)
     for lsof_line in ${lsof_output}; do
-        for c2 in ${c2_iocs[@]}; do
+        for c2 in "${c2_iocs[@]}"; do
             # echo "$lsof_line - $c2"
             if [ "${lsof_line/$c2}" != "$lsof_line" ]; then
                 echo "[!] C2 server found in lsof output SERVER: $c2 LSOF_LINE: $lsof_line"
@@ -341,13 +342,13 @@ function read_hashes_iocs
     oldIFS=$IFS
     IFS=$'\n'
     local index=0
-    while read line ; do
+    while read -r line ; do
         hash=$(echo "$line" | cut -f1 -d';')
         description=$(echo "$line" | cut -f2 -d';')
         hash_iocs[$index]="$hash"
         hash_ioc_description[$index]="$description"
         # echo "$hash $description"
-        index=$(($index+1))
+        index=$((index+1))
     done < $HASH_IOC_FILE
     IFS=$oldIFS
 }
@@ -358,10 +359,10 @@ function read_string_iocs
     oldIFS=$IFS
     IFS=$'\n'
     local index=0
-    while read line ; do
+    while read -r line ; do
         string_iocs[$index]="$line"
         # echo "$line"
-        index=$(($index+1))
+        index=$((index+1))
     done < $STRING_IOCS
     # Prepare grep strings - tried to concatenate a complete string, failed - todo
     # grep_strings=$(prepare_grep_strings)
@@ -375,10 +376,10 @@ function read_filename_iocs
     oldIFS=$IFS
     IFS=$'\n'
     local index=0
-    while read line ; do
+    while read -r line ; do
         filename_iocs[$index]="$line"
         # echo "$line"
-        index=$(($index+1))
+        index=$((index+1))
     done < $FILENAME_IOCS
     IFS=$oldIFS
 }
@@ -389,10 +390,10 @@ function read_c2_iocs
     oldIFS=$IFS
     IFS=$'\n'
     local index=0
-    while read line ; do
+    while read -r line ; do
         c2_iocs[$index]="$line"
         # echo "$line"
-        index=$(($index+1))
+        index=$((index+1))
     done < $C2_IOCS
     IFS=$oldIFS
 }
@@ -440,4 +441,4 @@ if [ $DO_C2_CHECK -eq 1 ]; then
     scan_c2
 fi
 echo "[+] Scanning path ..."
-scan_dirs $1
+scan_dirs "$1"
