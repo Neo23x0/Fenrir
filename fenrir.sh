@@ -5,7 +5,7 @@
 # Florian Roth
 # October 2015
 
-VERSION="0.4.3b"
+VERSION="0.4.4b"
 
 # Settings
 HASH_IOC_FILE="./hash-iocs.txt"
@@ -129,7 +129,7 @@ function scan_dirs
                 md5=$(md5sum "$file_path" 2> /dev/null | cut -f1 -d' ')
                 sha1=$(sha1sum "$file_path" 2> /dev/null | cut -f1 -d' ')
                 sha256=$(shasum -a 256 "$file_path" 2> /dev/null | cut -f1 -d' ')
-                check_hashes "$md5" "$sha1" "$sha256" "$file_name"
+                check_hashes "$md5" "$sha1" "$sha256" "$file_path"
             fi
 
             # Date Check
@@ -151,21 +151,21 @@ function check_hashes
     local md5=$1
     local sha1=$2
     local sha256=$3
-    local filename=$4
+    local filepath=$4
     for hash in "${hash_iocs[@]}";
     do
         # echo "Comparing $hash with $md5"
         if [ "$md5" == "$hash" ]; then
             description=${hash_ioc_description[$index]}
-            echo "[!] Hash match found FILE: $filename HASH: $hash DESCRIPTION: $description"
+            echo "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
         fi
         if [ "$sha1" == "$hash" ]; then
             description=${hash_ioc_description[$index]}
-            echo "[!] Hash match found FILE: $filename HASH: $hash DESCRIPTION: $description"
+            echo "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
         fi
         if [ "$sha256" == "$hash" ]; then
             description=${hash_ioc_description[$index]}
-            echo "[!] Hash match found FILE: $filename HASH: $hash DESCRIPTION: $description"
+            echo "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
         fi
         index=$((index+1))
     done
