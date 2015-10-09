@@ -5,7 +5,7 @@
 # Florian Roth
 # October 2015
 
-VERSION="0.4.2b"
+VERSION="0.4.3b"
 
 # Settings
 HASH_IOC_FILE="./hash-iocs.txt"
@@ -20,10 +20,10 @@ declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'asp' 'dll' 'txt' 'js' 'vbs' 'bat' '
 # regradless of their size and extension
 declare -a FORCED_STRING_MATCH_DIRS=('/var/log/' '/etc/hosts');
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/mnt/' '/media/');
-MIN_HOT_EPOCH=1444160000 # minimum Unix epoch for hot time frame e.g. 1444160522
-MAX_HOT_EPOCH=1444160400 # maximum Unix epoch for hot time frame e.g. 1444160619
+MIN_HOT_EPOCH=1444163570 # minimum Unix epoch for hot time frame e.g. 1444160522
+MAX_HOT_EPOCH=1444163590 # maximum Unix epoch for hot time frame e.g. 1444160619
 CHECK_FOR_HOT_TIMEFRAME=0
-DEBUG=1
+DEBUG=0
 
 # Code
 declare -a hash_iocs
@@ -134,7 +134,7 @@ function scan_dirs
 
             # Date Check
             if [ $CHECK_FOR_HOT_TIMEFRAME -eq 1 ] && [ $DO_DATE_CHECK -eq 1 ]; then
-                check_date "$file_name" "$file_path"
+                check_date "$file_path"
             fi
         fi
 
@@ -248,17 +248,17 @@ function check_extension
 
 function check_date
 {
-    local filename="$1"
-    local filepath="$2"
+    local filepath="$1"
     local file_epoch=123 # dummy value
     if [ "$stat_mode" -eq 1 ]; then
-        file_epoch=$(stat -c '%Z' "$1")
+        file_epoch=$(stat -c '%Z' "$filepath")
     else
         local st_ctime="$file_epoch"
-        eval "$(stat -s "$1")"
+        eval "$(stat -s "$filepath")"
         file_epoch="$st_ctime"
     fi
-    if [ "$file_epoch" -gt $MIN_HOT_EPOCH ] && [ "$file_epoch" -lt $MAX_HOT_EPOCH ]; then
+    # echo "$file_epoch"
+    if [ "$file_epoch" -gt "$MIN_HOT_EPOCH" ] && [ "$file_epoch" -lt "$MAX_HOT_EPOCH" ]; then
         echo "[!] File changed/created in hot time frame FILE: $filepath EPOCH: $file_epoch"
     fi
 }
