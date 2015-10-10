@@ -1,3 +1,5 @@
 /.idea/*
 /fenrir_client8/*
 fenrir_backup.sh
+
+fenrir.log
