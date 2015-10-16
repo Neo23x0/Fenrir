@@ -341,9 +341,8 @@ function evaluate_stat_mode
 }
 
 function timestamp {
-  echo $(date +%Y%m%d_%H%M%SZ)
+  echo $(date +%F_%T)
 }
-
 
 function log {
     local type="$1"
