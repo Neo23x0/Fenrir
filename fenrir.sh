@@ -9,6 +9,8 @@ VERSION="0.5.0b"
 
 # Settings ------------------------------------------------------------
 
+SYSTEM_NAME=$(uname -n | tr -d "\n")
+
 # IOCs
 HASH_IOC_FILE="./hash-iocs.txt"
 STRING_IOCS="./string-iocs.txt"
@@ -16,7 +18,7 @@ FILENAME_IOCS="./filename-iocs.txt"
 C2_IOCS="./c2-iocs.txt"
 
 # Log
-LOG_FILE="./fenrir.log"
+LOG_FILE="./fenrir_$SYSTEM_NAME.log"
 LOG_TO_FILE=1
 LOG_TO_SYSLOG=1
 LOG_TO_CMDLINE=1
@@ -458,7 +460,14 @@ fi
 # Non-static global variables
 declare stat_mode=1
 
+
+IP_ADDRESS=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
+OS_RELEASE=$(cat /etc/*release | sort -u | tr "\n" ";")
+
 log info "Started FENRIR Scan - version $VERSION"
+log info "HOSTNAME: $SYSTEM_NAME"
+log info "IP: $IP_ADDRESS"
+log info "OS: $OS_RELEASE"
 
 # Evaluate which stat mode to use
 evaluate_stat_mode
