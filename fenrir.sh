@@ -211,7 +211,7 @@ function check_string
     for string in "${check_strings[@]}";
     do
         # echo "Greping $string in $1"
-        match=$(grep "$string" "$filepath" 2> /dev/null)
+        match=$(grep -F "$string" "$filepath" 2> /dev/null)
         if [ "$match" != "" ]; then
             log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain"
         fi
@@ -222,7 +222,7 @@ function check_string
             for string in "${check_strings[@]}";
             do
                 # echo "Greping $string in $1"
-                match=$(zgrep "$string" "$filepath" 2> /dev/null)
+                match=$(zgrep -F "$string" "$filepath" 2> /dev/null)
                 if [ "$match" != "" ]; then
                     log warning "[!] String match found FILE: $filepath STRING: $string TYPE: gzip"
                 fi
