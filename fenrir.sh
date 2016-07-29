@@ -5,7 +5,7 @@
 # Florian Roth
 # October 2015
 
-VERSION="0.5.0b"
+VERSION="0.5.1"
 
 # Settings ------------------------------------------------------------
 
@@ -34,9 +34,10 @@ declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'asp' 'dll' 'txt' 'js' 'vbs' 'bat' '
 # files in these directories will be checked with string grep
 # regradless of their size and extension
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/media/');
-
 # Force Checks
 declare -a FORCED_STRING_MATCH_DIRS=('/var/log/' '/etc/hosts');
+# Exclude all output lines that contain these strings
+declare -a EXCLUDE_STRINGS=('iocs.txt' 'fenrir');
 
 # Hot Time Frame Check
 MIN_HOT_EPOCH=1444163570 # minimum Unix epoch for hot time frame e.g. 1444160522
@@ -60,10 +61,17 @@ function scan_dirs
 {
     # Scan Dir
     scandir=$1
+
+    # Debug Output --------------------------------------------
+    if [ $DEBUG -eq 1 ]; then
+        log debug "Scanning $scandir ..."
+    fi
+
     # Cleanup trailing "/" in the most compatible way
     if [ "${scandir: -1}" == "/" ] && [ "${#scandir}" -gt 1 ]; then
         scandir="${scandir:0:${#scandir}-1}"
     fi
+
     # Loop through files
     for file_path in $(find "$scandir" -type f 2> /dev/null)
     do
@@ -351,6 +359,15 @@ function log {
     local message="$2"
     local ts=$(timestamp)
 
+    # Exclude certain strings (false psotives)
+    for ex_string in "${EXCLUDE_STRINGS[@]}";
+    do
+        # echo "Checking if $ex_string is in $message"
+        if [ "${message/$ex_string}" != "$message" ]; then
+            return 0
+        fi
+    done
+
     # Remove prefix (e.g. [+])
     if [[ "${message:0:1}" == "[" ]]; then
         message_cleaned="${message:4:${#message}}"
@@ -444,7 +461,7 @@ echo " v$VERSION"
 echo " "
 echo " Simple Bash IOC Checker"
 echo " Florian Roth"
-echo " October 2015"
+echo " July 2016"
 echo "##############################################################"
 
 if [ "$#" -ne 1 ]; then
@@ -460,12 +477,12 @@ fi
 # Non-static global variables
 declare stat_mode=1
 
-
-IP_ADDRESS=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1')
-OS_RELEASE=$(cat /etc/*release | sort -u | tr "\n" ";")
-
 log info "Started FENRIR Scan - version $VERSION"
 log info "HOSTNAME: $SYSTEM_NAME"
+
+IP_ADDRESS=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | tr '\n' ' ')
+OS_RELEASE=$(cat /etc/*release | sort -u | tr "\n" ";")
+
 log info "IP: $IP_ADDRESS"
 log info "OS: $OS_RELEASE"
 

@@ -3,3 +3,7 @@
 fenrir_backup.sh
 
 fenrir.log
+
+*.log
+
+output/audit.txt
