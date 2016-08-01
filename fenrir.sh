@@ -3,9 +3,8 @@
 # FENRIR
 # Simple Bash IOC Checker
 # Florian Roth
-# October 2015
 
-VERSION="0.5.1"
+VERSION="0.5.2"
 
 # Settings ------------------------------------------------------------
 
@@ -20,17 +19,17 @@ C2_IOCS="./c2-iocs.txt"
 # Log
 LOG_FILE="./fenrir_$SYSTEM_NAME.log"
 LOG_TO_FILE=1
-LOG_TO_SYSLOG=1
+LOG_TO_SYSLOG=0 # Log to syslog is set to 'off' by default > false positives
 LOG_TO_CMDLINE=1
 SYSLOG_FACILITY=local4
 
 # Disable Checks
-DO_C2_CHECK=0
+DO_C2_CHECK=1
 
 # Exclusions
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1
-declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys' 'php' 'jspx' 'pl'); # use lower-case
+declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys' 'php' 'jspx' 'pl' 'war' 'sh'); # use lower-case
 # files in these directories will be checked with string grep
 # regradless of their size and extension
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/media/');
@@ -221,7 +220,12 @@ function check_string
         # echo "Greping $string in $1"
         match=$(grep -F "$string" "$filepath" 2> /dev/null)
         if [ "$match" != "" ]; then
-            log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain"
+            match_extract=$(echo $match |cut -c1-100)
+            size_of_match=${#match}
+            if [ "$size_of_match" -gt 100 ]; then
+                match_extract="$match_extract ... (truncated)"
+            fi
+            log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain MATCH: $match_extract"
         fi
     done
     # Try zgrep on gz files below /var/log
@@ -232,7 +236,12 @@ function check_string
                 # echo "Greping $string in $1"
                 match=$(zgrep -F "$string" "$filepath" 2> /dev/null)
                 if [ "$match" != "" ]; then
-                    log warning "[!] String match found FILE: $filepath STRING: $string TYPE: gzip"
+                    match_extract=$(echo $match |cut -c1-100)
+                    size_of_match=${#match}
+                    if [ "$size_of_match" -gt 100 ]; then
+                        match_extract="$match_extract ... (truncated)"
+                    fi
+                    log warning "[!] String match found FILE: $filepath STRING: $string TYPE: gzip MATCH: $match_extract"
                 fi
             done
         fi
@@ -245,7 +254,12 @@ function check_string
                 # echo "Greping $string in $1"
                 match=$(bzgrep "$string" "$filepath" 2> /dev/null)
                 if [ "$match" != "" ]; then
-                    log warning "[!] String match found FILE: $filepath STRING: $string TYPE: bzip2"
+                    match_extract=$(echo $match |cut -c1-100)
+                    size_of_match=${#match}
+                    if [ "$size_of_match" -gt 100 ]; then
+                        match_extract="$match_extract ... (truncated)"
+                    fi
+                    log warning "[!] String match found FILE: $filepath STRING: $string TYPE: bzip2 MATCH: $match_extract"
                 fi
             done
         fi
@@ -461,7 +475,7 @@ echo " v$VERSION"
 echo " "
 echo " Simple Bash IOC Checker"
 echo " Florian Roth"
-echo " July 2016"
+echo " August 2016"
 echo "##############################################################"
 
 if [ "$#" -ne 1 ]; then
@@ -482,9 +496,13 @@ log info "HOSTNAME: $SYSTEM_NAME"
 
 IP_ADDRESS=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | tr '\n' ' ')
 OS_RELEASE=$(cat /etc/*release | sort -u | tr "\n" ";")
+OS_ISSUE=$(cat /etc/issue)
+OS_KERNEL=$(uname -a)
 
 log info "IP: $IP_ADDRESS"
 log info "OS: $OS_RELEASE"
+log info "ISSUE: $OS_ISSUE"
+log info "KERNEL: $OS_KERNEL"
 
 # Evaluate which stat mode to use
 evaluate_stat_mode
@@ -501,7 +519,7 @@ read_c2_iocs
 
 # Now scan the given first parameter
 if [ $DO_C2_CHECK -eq 1 ]; then
-    log info "[+] Scanning for C2 ..."
+    log info "[+] Scanning for C2 servers in 'lsof' output ..."
     scan_c2
 fi
 log info "[+] Scanning path $1 ..."
