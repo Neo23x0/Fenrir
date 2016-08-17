@@ -112,8 +112,8 @@ function scan_dirs
                     if [ $DEBUG -eq 1 ]; then
                         log debug "Deactivating some checks on $file_path due to irrelevant extension ..."
                     fi
-                DO_STRING_CHECK=0
-                DO_HASH_CHECK=0
+                    DO_STRING_CHECK=0
+                    DO_HASH_CHECK=0
                 fi
             fi
 
@@ -133,6 +133,9 @@ function scan_dirs
             for fsm_dir in "${FORCED_STRING_MATCH_DIRS[@]}";
             do
                 # echo "Checking if $ex_dir is in $dir"
+                # The following check matches when $fsm_dir is ANYWHERE in the
+                # $file_path, not only at the beginning. As we're just doing
+                # more checks in that case, we don't care
                 if [ "${file_path/$fsm_dir}" != "$file_path" ]; then
                     DO_STRING_CHECK=1
                     if [ $DEBUG -eq 1 ]; then
@@ -207,61 +210,58 @@ function check_string
     local varlog="/var/log"
 
     # Decide which strings to look for
-    # Default
-    check_strings=("${string_iocs[@]}")
-    if [ "${filepath/$varlog}" != "$filepath" ]; then
-        # Add C2 iocs if directory is log directory
-        check_strings=( "${string_iocs[@]}" "${c2_iocs[@]}" )
-    fi
+    check_strings=$(
+        for string in "${string_iocs[@]}";
+        do
+            echo "$string"
+        done
 
-    # Standard Grep
-    for string in "${check_strings[@]}";
-    do
-        # echo "Greping $string in $1"
-        match=$(grep -F "$string" "$filepath" 2> /dev/null)
-        if [ "$match" != "" ]; then
-            match_extract=$(echo $match |cut -c1-100)
-            size_of_match=${#match}
-            if [ "$size_of_match" -gt 100 ]; then
-                match_extract="$match_extract ... (truncated)"
-            fi
-            log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain MATCH: $match_extract"
+        if [ "${filepath/$varlog}" != "$filepath" ]; then
+            # Add C2 iocs if directory is log directory
+            for string in "${c2_iocs[@]}";
+            do
+                echo "$string"
+            done
         fi
-    done
+    )
+
+
+    # echo "Greping $string in $1"
+    match=$(grep -F "$check_strings" "$filepath" 2> /dev/null)
+    if [ "$match" != "" ]; then
+        match_extract=$(echo $match |cut -c1-100)
+        size_of_match=${#match}
+        if [ "$size_of_match" -gt 100 ]; then
+            match_extract="$match_extract ... (truncated)"
+        fi
+        log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain MATCH: $match_extract"
+    fi
     # Try zgrep on gz files below /var/log
     if [ "$extension" == "gz" ] || [ "$extension" == "Z" ] || [ "$extension" == "zip" ]; then
         if [ "${filepath/$varlog}" != "$filepath" ]; then
-            for string in "${check_strings[@]}";
-            do
-                # echo "Greping $string in $1"
-                match=$(zgrep -F "$string" "$filepath" 2> /dev/null)
-                if [ "$match" != "" ]; then
-                    match_extract=$(echo $match |cut -c1-100)
-                    size_of_match=${#match}
-                    if [ "$size_of_match" -gt 100 ]; then
-                        match_extract="$match_extract ... (truncated)"
-                    fi
-                    log warning "[!] String match found FILE: $filepath STRING: $string TYPE: gzip MATCH: $match_extract"
+            match=$(zgrep -F "$check_strings" "$filepath" 2> /dev/null)
+            if [ "$match" != "" ]; then
+                match_extract=$(echo $match |cut -c1-100)
+                size_of_match=${#match}
+                if [ "$size_of_match" -gt 100 ]; then
+                    match_extract="$match_extract ... (truncated)"
                 fi
-            done
+                log warning "[!] String match found FILE: $filepath STRING: $string TYPE: gzip MATCH: $match_extract"
+            fi
         fi
     fi
     # Try bzgrep on bz files below /var/log
     if [ "$extension" == "bz" ] || [ "$extension" == "bz2" ]; then
         if [ "${filepath/$varlog}" != "$filepath" ]; then
-            for string in "${check_strings[@]}";
-            do
-                # echo "Greping $string in $1"
-                match=$(bzgrep "$string" "$filepath" 2> /dev/null)
-                if [ "$match" != "" ]; then
-                    match_extract=$(echo $match |cut -c1-100)
-                    size_of_match=${#match}
-                    if [ "$size_of_match" -gt 100 ]; then
-                        match_extract="$match_extract ... (truncated)"
-                    fi
-                    log warning "[!] String match found FILE: $filepath STRING: $string TYPE: bzip2 MATCH: $match_extract"
+            match=$(bzgrep -F "$check_strings" "$filepath" 2> /dev/null)
+            if [ "$match" != "" ]; then
+                match_extract=$(echo $match |cut -c1-100)
+                size_of_match=${#match}
+                if [ "$size_of_match" -gt 100 ]; then
+                    match_extract="$match_extract ... (truncated)"
                 fi
-            done
+                log warning "[!] String match found FILE: $filepath STRING: $string TYPE: bzip2 MATCH: $match_extract"
+            fi
         fi
     fi
 }
@@ -315,6 +315,9 @@ function check_dir
     do
         # echo "Checking if $ex_dir is in $dir"
         if [ "${dir/$ex_dir}" != "$dir" ]; then
+            if [ "${dir/#$ex_dir}" = "$dir" ];then
+                log debug "Skipping $file_path due to WRONG exclusion bc/ $ex_dir in the middle of the path..."
+            fi
             result=1
         fi
     done
@@ -373,7 +376,7 @@ function log {
     local message="$2"
     local ts=$(timestamp)
 
-    # Exclude certain strings (false psotives)
+    # Exclude certain strings (false positives)
     for ex_string in "${EXCLUDE_STRINGS[@]}";
     do
         # echo "Checking if $ex_string is in $message"
@@ -399,7 +402,7 @@ function log {
     fi
     # Log to command line
     if [[ $LOG_TO_CMDLINE -eq 1 ]]; then
-        echo "$message"
+        echo "$message" >&2
     fi
 }
 
