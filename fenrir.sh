@@ -133,6 +133,9 @@ function scan_dirs
             for fsm_dir in "${FORCED_STRING_MATCH_DIRS[@]}";
             do
                 # echo "Checking if $ex_dir is in $dir"
+                # The following check matches when $fsm_dir is ANYWHERE in the
+                # $file_path, not only at the beginning. As we're just doing
+                # more checks in that case, we don't care
                 if [ "${file_path/$fsm_dir}" != "$file_path" ]; then
                     DO_STRING_CHECK=1
                     if [ $DEBUG -eq 1 ]; then
@@ -312,6 +315,9 @@ function check_dir
     do
         # echo "Checking if $ex_dir is in $dir"
         if [ "${dir/$ex_dir}" != "$dir" ]; then
+            if [ "${dir/#$ex_dir}" = "$dir" ];then
+                log debug "Skipping $file_path due to WRONG exclusion bc/ $ex_dir in the middle of the path..."
+            fi
             result=1
         fi
     done
