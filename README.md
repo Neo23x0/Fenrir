@@ -96,8 +96,6 @@ Stat issue (regarding the CREATED file stamp on Linux file systems)
 
 # Known Issues
 
-The "string detection" function needs a more effective way to check files for certain strings. I already tried to concatenate the string IOC array to a long expression joined with " -e " in order to "pre-grep" the file with "grep -e string1 -e string2 -e string3 $filename" but didn't get it to work.  
-
 # Contact 
 
 via Twitter @Cyb3rOps

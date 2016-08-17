@@ -207,61 +207,58 @@ function check_string
     local varlog="/var/log"
 
     # Decide which strings to look for
-    # Default
-    check_strings=("${string_iocs[@]}")
-    if [ "${filepath/$varlog}" != "$filepath" ]; then
-        # Add C2 iocs if directory is log directory
-        check_strings=( "${string_iocs[@]}" "${c2_iocs[@]}" )
-    fi
+    check_strings=$(
+        for string in "${string_iocs[@]}";
+        do
+            echo "$string"
+        done
 
-    # Standard Grep
-    for string in "${check_strings[@]}";
-    do
-        # echo "Greping $string in $1"
-        match=$(grep -F "$string" "$filepath" 2> /dev/null)
-        if [ "$match" != "" ]; then
-            match_extract=$(echo $match |cut -c1-100)
-            size_of_match=${#match}
-            if [ "$size_of_match" -gt 100 ]; then
-                match_extract="$match_extract ... (truncated)"
-            fi
-            log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain MATCH: $match_extract"
+        if [ "${filepath/$varlog}" != "$filepath" ]; then
+            # Add C2 iocs if directory is log directory
+            for string in "${c2_iocs[@]}";
+            do
+                echo "$string"
+            done
         fi
-    done
+    )
+
+
+    # echo "Greping $string in $1"
+    match=$(grep -F "$check_strings" "$filepath" 2> /dev/null)
+    if [ "$match" != "" ]; then
+        match_extract=$(echo $match |cut -c1-100)
+        size_of_match=${#match}
+        if [ "$size_of_match" -gt 100 ]; then
+            match_extract="$match_extract ... (truncated)"
+        fi
+        log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain MATCH: $match_extract"
+    fi
     # Try zgrep on gz files below /var/log
     if [ "$extension" == "gz" ] || [ "$extension" == "Z" ] || [ "$extension" == "zip" ]; then
         if [ "${filepath/$varlog}" != "$filepath" ]; then
-            for string in "${check_strings[@]}";
-            do
-                # echo "Greping $string in $1"
-                match=$(zgrep -F "$string" "$filepath" 2> /dev/null)
-                if [ "$match" != "" ]; then
-                    match_extract=$(echo $match |cut -c1-100)
-                    size_of_match=${#match}
-                    if [ "$size_of_match" -gt 100 ]; then
-                        match_extract="$match_extract ... (truncated)"
-                    fi
-                    log warning "[!] String match found FILE: $filepath STRING: $string TYPE: gzip MATCH: $match_extract"
+            match=$(zgrep -F "$check_strings" "$filepath" 2> /dev/null)
+            if [ "$match" != "" ]; then
+                match_extract=$(echo $match |cut -c1-100)
+                size_of_match=${#match}
+                if [ "$size_of_match" -gt 100 ]; then
+                    match_extract="$match_extract ... (truncated)"
                 fi
-            done
+                log warning "[!] String match found FILE: $filepath STRING: $string TYPE: gzip MATCH: $match_extract"
+            fi
         fi
     fi
     # Try bzgrep on bz files below /var/log
     if [ "$extension" == "bz" ] || [ "$extension" == "bz2" ]; then
         if [ "${filepath/$varlog}" != "$filepath" ]; then
-            for string in "${check_strings[@]}";
-            do
-                # echo "Greping $string in $1"
-                match=$(bzgrep "$string" "$filepath" 2> /dev/null)
-                if [ "$match" != "" ]; then
-                    match_extract=$(echo $match |cut -c1-100)
-                    size_of_match=${#match}
-                    if [ "$size_of_match" -gt 100 ]; then
-                        match_extract="$match_extract ... (truncated)"
-                    fi
-                    log warning "[!] String match found FILE: $filepath STRING: $string TYPE: bzip2 MATCH: $match_extract"
+            match=$(bzgrep -F "$check_strings" "$filepath" 2> /dev/null)
+            if [ "$match" != "" ]; then
+                match_extract=$(echo $match |cut -c1-100)
+                size_of_match=${#match}
+                if [ "$size_of_match" -gt 100 ]; then
+                    match_extract="$match_extract ... (truncated)"
                 fi
-            done
+                log warning "[!] String match found FILE: $filepath STRING: $string TYPE: bzip2 MATCH: $match_extract"
+            fi
         fi
     fi
 }
