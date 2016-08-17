@@ -402,7 +402,7 @@ function log {
     fi
     # Log to command line
     if [[ $LOG_TO_CMDLINE -eq 1 ]]; then
-        echo "$message"
+        echo "$message" >&2
     fi
 }
 
