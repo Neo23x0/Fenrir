@@ -112,8 +112,8 @@ function scan_dirs
                     if [ $DEBUG -eq 1 ]; then
                         log debug "Deactivating some checks on $file_path due to irrelevant extension ..."
                     fi
-                DO_STRING_CHECK=0
-                DO_HASH_CHECK=0
+                    DO_STRING_CHECK=0
+                    DO_HASH_CHECK=0
                 fi
             fi
 
@@ -376,7 +376,7 @@ function log {
     local message="$2"
     local ts=$(timestamp)
 
-    # Exclude certain strings (false psotives)
+    # Exclude certain strings (false positives)
     for ex_string in "${EXCLUDE_STRINGS[@]}";
     do
         # echo "Checking if $ex_string is in $message"
