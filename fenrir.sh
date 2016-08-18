@@ -316,7 +316,9 @@ function check_dir
         # echo "Checking if $ex_dir is in $dir"
         if [ "${dir/$ex_dir}" != "$dir" ]; then
             if [ "${dir/#$ex_dir}" = "$dir" ];then
-                log debug "Skipping $file_path due to WRONG exclusion bc/ $ex_dir in the middle of the path..."
+                if [ $DEBUG -eq 1 ]; then
+                    log debug "Skipping $file_path due to WRONG exclusion bc/ $ex_dir in the middle of the path..."
+                fi
             fi
             result=1
         fi
