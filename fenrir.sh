@@ -4,7 +4,7 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
-VERSION="0.5.3"
+VERSION="0.5.4"
 
 # Settings ------------------------------------------------------------
 
@@ -24,7 +24,7 @@ LOG_TO_CMDLINE=1
 SYSLOG_FACILITY=local4
 
 # Disable Checks
-DO_C2_CHECK=1
+DO_C2_CHECK=0
 
 # Exclusions
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
@@ -225,10 +225,10 @@ function check_string
         fi
     )
 
-
     # echo "Greping $string in $1"
     match=$(grep -F "$check_strings" "$filepath" 2> /dev/null)
     if [ "$match" != "" ]; then
+        string=$(determine_stringmatch "$match")
         match_extract=$(echo $match |cut -c1-100)
         size_of_match=${#match}
         if [ "$size_of_match" -gt 100 ]; then
@@ -241,6 +241,7 @@ function check_string
         if [ "${filepath/$varlog}" != "$filepath" ]; then
             match=$(zgrep -F "$check_strings" "$filepath" 2> /dev/null)
             if [ "$match" != "" ]; then
+                string=$(determine_stringmatch "$match")
                 match_extract=$(echo $match |cut -c1-100)
                 size_of_match=${#match}
                 if [ "$size_of_match" -gt 100 ]; then
@@ -255,6 +256,7 @@ function check_string
         if [ "${filepath/$varlog}" != "$filepath" ]; then
             match=$(bzgrep -F "$check_strings" "$filepath" 2> /dev/null)
             if [ "$match" != "" ]; then
+                string=$(determine_stringmatch "$match")
                 match_extract=$(echo $match |cut -c1-100)
                 size_of_match=${#match}
                 if [ "$size_of_match" -gt 100 ]; then
@@ -264,6 +266,23 @@ function check_string
             fi
         fi
     fi
+}
+
+function determine_stringmatch
+{
+    for string in "${string_iocs[@]}";
+    do
+        if [ "${1/$string}" != "$1" ]; then
+            echo "$string"
+        fi
+    done
+    for string in "${c2_iocs[@]}";
+    do
+        if [ "${1/$string}" != "$1" ]; then
+            echo "$string"
+        fi
+    done
+    echo "(binary match)"
 }
 
 function check_filename
