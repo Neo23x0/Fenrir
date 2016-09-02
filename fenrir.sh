@@ -4,7 +4,7 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
-VERSION="0.5.4"
+VERSION="0.5.5"
 
 # Settings ------------------------------------------------------------
 
@@ -29,7 +29,7 @@ DO_C2_CHECK=0
 # Exclusions
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1
-declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys' 'php' 'jspx' 'pl' 'war' 'sh'); # use lower-case
+declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys' 'php' 'jspx' 'pl' 'war' 'sh' 'asp' 'aspx' 'jspx'); # use lower-case
 # files in these directories will be checked with string grep
 # regradless of their size and extension
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/media/');
@@ -52,6 +52,7 @@ DEBUG=0
 declare -a hash_iocs
 declare -a hash_ioc_description
 declare -a string_iocs
+declare -a check_strings
 declare -a filename_iocs
 declare -a c2_iocs
 # declare grep_strings
@@ -209,32 +210,15 @@ function check_string
     local extension=$2
     local varlog="/var/log"
 
-    # Decide which strings to look for
-    check_strings=$(
-        for string in "${string_iocs[@]}";
-        do
-            echo "$string"
-        done
-
-        if [ "${filepath/$varlog}" != "$filepath" ]; then
-            # Add C2 iocs if directory is log directory
-            for string in "${c2_iocs[@]}";
-            do
-                echo "$string"
-            done
-        fi
-    )
-
     # echo "Greping $string in $1"
     match=$(grep -F "$check_strings" "$filepath" 2> /dev/null)
+    # Cut big matches (fixes buges in super long web shell lines without line breaks)
+    match=$(echo "$match" |cut -c1-100)
+
+    # if [[ ! -z "${match// }" ]] ; then
     if [ "$match" != "" ]; then
         string=$(determine_stringmatch "$match")
-        match_extract=$(echo $match |cut -c1-100)
-        size_of_match=${#match}
-        if [ "$size_of_match" -gt 100 ]; then
-            match_extract="$match_extract ... (truncated)"
-        fi
-        log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain MATCH: $match_extract"
+        log warning "[!] String match found FILE: $filepath STRING: $string TYPE: plain MATCH: $match"
     fi
     # Try zgrep on gz files below /var/log
     if [ "$extension" == "gz" ] || [ "$extension" == "Z" ] || [ "$extension" == "zip" ]; then
@@ -274,12 +258,14 @@ function determine_stringmatch
     do
         if [ "${1/$string}" != "$1" ]; then
             echo "$string"
+            return 0
         fi
     done
     for string in "${c2_iocs[@]}";
     do
         if [ "${1/$string}" != "$1" ]; then
             echo "$string"
+            return 0
         fi
     done
     echo "(binary match)"
@@ -345,8 +331,7 @@ function check_dir
     echo $result
 }
 
-# Analysis
-
+# Analysis --------------------------------------------------------------------
 function scan_c2
 {
     oldIFS=$IFS
@@ -406,6 +391,9 @@ function log {
         fi
     done
 
+    # Remove line breaks
+    message=$(echo "$message" | tr '\n' ' ') 
+
     # Remove prefix (e.g. [+])
     if [[ "${message:0:1}" == "[" ]]; then
         message_cleaned="${message:4:${#message}}"
@@ -438,6 +426,9 @@ function read_hashes_iocs
     while read -r line ; do
         hash=$(echo "$line" | cut -f1 -d';')
         description=$(echo "$line" | cut -f2 -d';')
+        if [[ -z "${hash// }" ]] ; then
+            continue
+        fi
         hash_iocs[$index]="$hash"
         hash_ioc_description[$index]="$description"
         # echo "$hash $description"
@@ -453,6 +444,14 @@ function read_string_iocs
     IFS=$'\n'
     local index=0
     while read -r line ; do
+        # Skip empty values
+        if [[ -z "${line// }" ]] ; then
+            continue
+        fi
+        # Skip comments
+        if [[ $line == \#* ]] ; then
+            continue
+        fi
         string_iocs[$index]="$line"
         # echo "$line"
         index=$((index+1))
@@ -470,6 +469,9 @@ function read_filename_iocs
     IFS=$'\n'
     local index=0
     while read -r line ; do
+        if [[ -z "${line// }" ]] ; then
+            continue
+        fi
         filename_iocs[$index]="$line"
         # echo "$line"
         index=$((index+1))
@@ -484,11 +486,31 @@ function read_c2_iocs
     IFS=$'\n'
     local index=0
     while read -r line ; do
+        if [[ -z "${line// }" ]] ; then
+            continue
+        fi
         c2_iocs[$index]="$line"
         # echo "$line"
         index=$((index+1))
     done < $C2_IOCS
     IFS=$oldIFS
+}
+
+function prepare_check_stings
+{
+    # New method - create a string with values divided by new line for use in 'grep -F' 
+    check_strings=$(
+        for string in "${string_iocs[@]}";
+        do
+            echo "$string"
+        done
+
+        # Add C2 iocs if directory is log directory
+        for string in "${c2_iocs[@]}";
+        do
+            echo "$string"
+        done
+    )
 }
 
 # Program -------------------------------------------------------------
@@ -499,7 +521,7 @@ echo " v$VERSION"
 echo " "
 echo " Simple Bash IOC Checker"
 echo " Florian Roth"
-echo " August 2016"
+echo " September 2016"
 echo "##############################################################"
 
 if [ "$#" -ne 1 ]; then
@@ -536,6 +558,7 @@ log info "[+] Reading Hash IOCs ..."
 read_hashes_iocs
 log info "[+] Reading String IOCs ..."
 read_string_iocs
+prepare_check_stings
 log info "[+] Reading Filename IOCs ..."
 read_filename_iocs
 log info "[+] Reading C2 IOCs ..."
