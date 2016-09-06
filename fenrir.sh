@@ -383,7 +383,7 @@ function log {
     done
 
     # Remove line breaks
-    message=$(echo "$message" | tr -d '\r' | tr -d '\l' | tr '\n' ' ') 
+    message=$(echo "$message" | tr -d '\r' | tr '\n' ' ') 
 
     # Remove prefix (e.g. [+])
     if [[ "${message:0:1}" == "[" ]]; then
