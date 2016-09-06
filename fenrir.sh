@@ -63,9 +63,7 @@ function scan_dirs
     scandir=$1
 
     # Debug Output --------------------------------------------
-    if [ $DEBUG -eq 1 ]; then
-        log debug "Scanning $scandir ..."
-    fi
+    log debug "Scanning $scandir ..."
 
     # Cleanup trailing "/" in the most compatible way
     if [ "${scandir: -1}" == "/" ] && [ "${#scandir}" -gt 1 ]; then
@@ -78,9 +76,7 @@ function scan_dirs
         if [ -f "${file_path}" ]; then
 
             # Debug Output --------------------------------------------
-            if [ $DEBUG -eq 1 ]; then
-                log debug "Scanning $file_path ..."
-            fi
+            log debug "Scanning $file_path ..."
 
             # Marker --------------------------------------------------
             DO_STRING_CHECK=1
@@ -97,9 +93,7 @@ function scan_dirs
             # Excluded Directories
             result=$(check_dir "$file_path")
             if [ "${result}" -eq 1 ]; then
-                if [ $DEBUG -eq 1 ]; then
-                    log debug "Skipping $file_path due to exclusion ..."
-                fi
+                log debug "Skipping $file_path due to exclusion ..."
                 DO_STRING_CHECK=0
                 DO_HASH_CHECK=0
                 DO_DATE_CHECK=0
@@ -110,9 +104,7 @@ function scan_dirs
             if [ $CHECK_ONLY_RELEVANT_EXTENSIONS -eq 1 ]; then
                 result=$(check_extension "$extension")
                 if [ "${result}" -ne 1 ]; then
-                    if [ $DEBUG -eq 1 ]; then
-                        log debug "Deactivating some checks on $file_path due to irrelevant extension ..."
-                    fi
+                    log debug "Deactivating some checks on $file_path due to irrelevant extension ..."
                     DO_STRING_CHECK=0
                     DO_HASH_CHECK=0
                 fi
@@ -121,9 +113,7 @@ function scan_dirs
             # Check Size
             filesize=$(du -k "$file_path" | cut -f1)
             if [ "${filesize}" -gt $MAX_FILE_SIZE ]; then
-                if [ $DEBUG -eq 1 ]; then
-                    log debug "Deactivating some checks on $file_path due to size"
-                fi
+                log debug "Deactivating some checks on $file_path due to size"
                 DO_STRING_CHECK=0
                 DO_HASH_CHECK=0
             fi
@@ -139,9 +129,7 @@ function scan_dirs
                 # more checks in that case, we don't care
                 if [ "${file_path/$fsm_dir}" != "$file_path" ]; then
                     DO_STRING_CHECK=1
-                    if [ $DEBUG -eq 1 ]; then
-                        log debug "Activating string check on $file_name"
-                    fi
+                    log debug "Activating string check on $file_name"
                 fi
             done
 
@@ -321,9 +309,7 @@ function check_dir
         # echo "Checking if $ex_dir is in $dir"
         if [ "${dir/$ex_dir}" != "$dir" ]; then
             if [ "${dir/#$ex_dir}" = "$dir" ];then
-                if [ $DEBUG -eq 1 ]; then
-                    log debug "Skipping $file_path due to WRONG exclusion bc/ $ex_dir in the middle of the path..."
-                fi
+                log debug "Skipping $file_path due to WRONG exclusion bc/ $ex_dir in the middle of the path..."
             fi
             result=1
         fi
@@ -381,6 +367,11 @@ function log {
     local type="$1"
     local message="$2"
     local ts=$(timestamp)
+
+    # Only report debug messages if mode is enabled
+    if [ "$type" == "debug" ] && [ $DEBUG -ne 1 ]; then
+        return 0
+    fi
 
     # Exclude certain strings (false positives)
     for ex_string in "${EXCLUDE_STRINGS[@]}";
