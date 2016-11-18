@@ -4,11 +4,11 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
-VERSION="0.5.5"
+VERSION="0.5.6"
 
 # Settings ------------------------------------------------------------
-
 SYSTEM_NAME=$(uname -n | tr -d "\n")
+TS_CONDENSED=$(date +%Y%m%d)
 
 # IOCs
 HASH_IOC_FILE="./hash-iocs.txt"
@@ -17,7 +17,7 @@ FILENAME_IOCS="./filename-iocs.txt"
 C2_IOCS="./c2-iocs.txt"
 
 # Log
-LOG_FILE="./fenrir_$SYSTEM_NAME.log"
+LOGFILE="./FENRIR_${SYSTEM_NAME}_${TS_CONDENSED}.log"
 LOG_TO_FILE=1
 LOG_TO_SYSLOG=0 # Log to syslog is set to 'off' by default > false positives
 LOG_TO_CMDLINE=1
@@ -394,7 +394,7 @@ function log {
 
     # Log to file
     if [[ $LOG_TO_FILE -eq 1 ]]; then
-        echo "$ts $type $message_cleaned" >> "$LOG_FILE"
+        echo "$ts $type $message_cleaned" >> "$LOGFILE"
     fi
     # Log to syslog
     if [[ $LOG_TO_SYSLOG -eq 1 ]]; then
@@ -529,7 +529,8 @@ fi
 declare stat_mode=1
 
 log info "Started FENRIR Scan - version $VERSION"
-log info "HOSTNAME: $SYSTEM_NAME"
+log info "Writing logfile to ${LOGFILE}"
+log info "HOSTNAME: ${SYSTEM_NAME}"
 
 IP_ADDRESS=$(ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -Eo '([0-9]*\.){3}[0-9]*' | grep -v '127.0.0.1' | tr '\n' ' ')
 OS_RELEASE=$(cat /etc/*release | sort -u | tr "\n" ";")
