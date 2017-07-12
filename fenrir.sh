@@ -366,7 +366,8 @@ function timestamp {
 function log {
     local type="$1"
     local message="$2"
-    local ts=$(timestamp)
+    local ts
+    ts=$(timestamp)
 
     # Only report debug messages if mode is enabled
     if [ "$type" == "debug" ] && [ $DEBUG -ne 1 ]; then
