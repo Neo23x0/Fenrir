@@ -360,7 +360,7 @@ function evaluate_stat_mode
 }
 
 function timestamp {
-  echo $(date +%F_%T)
+  date +%F_%T
 }
 
 function log {
