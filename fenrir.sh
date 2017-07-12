@@ -71,7 +71,7 @@ function scan_dirs
     fi
 
     # Loop through files
-    for file_path in $(find "$scandir" -type f 2> /dev/null)
+    find "$scandir" -type f 2> /dev/null | while read -r file_path
     do
         if [ -f "${file_path}" ]; then
 
