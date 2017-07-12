@@ -214,7 +214,7 @@ function check_string
             match=$(zgrep -F "$check_strings" "$filepath" 2> /dev/null)
             if [ "$match" != "" ]; then
                 string=$(determine_stringmatch "$match")
-                match_extract=$(echo $match |cut -c1-100)
+                match_extract=$(echo "$match" |cut -c1-100)
                 size_of_match=${#match}
                 if [ "$size_of_match" -gt 100 ]; then
                     match_extract="$match_extract ... (truncated)"
@@ -229,7 +229,7 @@ function check_string
             match=$(bzgrep -F "$check_strings" "$filepath" 2> /dev/null)
             if [ "$match" != "" ]; then
                 string=$(determine_stringmatch "$match")
-                match_extract=$(echo $match |cut -c1-100)
+                match_extract=$(echo "$match" |cut -c1-100)
                 size_of_match=${#match}
                 if [ "$size_of_match" -gt 100 ]; then
                     match_extract="$match_extract ... (truncated)"
@@ -398,7 +398,7 @@ function log {
     fi
     # Log to syslog
     if [[ $LOG_TO_SYSLOG -eq 1 ]]; then
-        logger -p "$SYSLOG_FACILITY.$type" "$(basename $0): $message_cleaned"
+        logger -p "$SYSLOG_FACILITY.$type" "$(basename "$0"): $message_cleaned"
     fi
     # Log to command line
     if [[ $LOG_TO_CMDLINE -eq 1 ]]; then
