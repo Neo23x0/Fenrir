@@ -71,7 +71,7 @@ function scan_dirs
     fi
 
     # Loop through files
-    for file_path in $(find "$scandir" -type f 2> /dev/null)
+    find "$scandir" -type f 2> /dev/null | while read -r file_path
     do
         if [ -f "${file_path}" ]; then
 
@@ -214,7 +214,7 @@ function check_string
             match=$(zgrep -F "$check_strings" "$filepath" 2> /dev/null)
             if [ "$match" != "" ]; then
                 string=$(determine_stringmatch "$match")
-                match_extract=$(echo $match |cut -c1-100)
+                match_extract=$(echo "$match" |cut -c1-100)
                 size_of_match=${#match}
                 if [ "$size_of_match" -gt 100 ]; then
                     match_extract="$match_extract ... (truncated)"
@@ -229,7 +229,7 @@ function check_string
             match=$(bzgrep -F "$check_strings" "$filepath" 2> /dev/null)
             if [ "$match" != "" ]; then
                 string=$(determine_stringmatch "$match")
-                match_extract=$(echo $match |cut -c1-100)
+                match_extract=$(echo "$match" |cut -c1-100)
                 size_of_match=${#match}
                 if [ "$size_of_match" -gt 100 ]; then
                     match_extract="$match_extract ... (truncated)"
@@ -309,7 +309,7 @@ function check_dir
         # echo "Checking if $ex_dir is in $dir"
         if [ "${dir/$ex_dir}" != "$dir" ]; then
             if [ "${dir/#$ex_dir}" = "$dir" ];then
-                log debug "Skipping $file_path due to WRONG exclusion bc/ $ex_dir in the middle of the path..."
+                log debug "Skipping $dir due to WRONG exclusion bc/ $ex_dir in the middle of the path..."
             fi
             result=1
         fi
@@ -360,13 +360,14 @@ function evaluate_stat_mode
 }
 
 function timestamp {
-  echo $(date +%F_%T)
+  date +%F_%T
 }
 
 function log {
     local type="$1"
     local message="$2"
-    local ts=$(timestamp)
+    local ts
+    ts=$(timestamp)
 
     # Only report debug messages if mode is enabled
     if [ "$type" == "debug" ] && [ $DEBUG -ne 1 ]; then
@@ -398,7 +399,7 @@ function log {
     fi
     # Log to syslog
     if [[ $LOG_TO_SYSLOG -eq 1 ]]; then
-        logger -p "$SYSLOG_FACILITY.$type" "$(basename $0): $message_cleaned"
+        logger -p "$SYSLOG_FACILITY.$type" "$(basename "$0"): $message_cleaned"
     fi
     # Log to command line
     if [[ $LOG_TO_CMDLINE -eq 1 ]]; then
