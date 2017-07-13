@@ -4,7 +4,7 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
-VERSION="0.5.6"
+VERSION="0.6.0"
 
 # Settings ------------------------------------------------------------
 SYSTEM_NAME=$(uname -n | tr -d "\n")
