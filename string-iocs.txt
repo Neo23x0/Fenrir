@@ -1,3 +1,4 @@
 <%eval request("ice")%>
 1%27%20OR%201%3D1
+FILE HAS EVIL CONTENT
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets
