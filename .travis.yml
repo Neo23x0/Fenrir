@@ -1,0 +1,11 @@
+language: bash
+
+script:
+  - bash ./fenrir.sh ./demo
+
+notifications:
+  email:
+    recipients:
+      - venom14@gmail.com
+    on_success: never
+    on_failure: always
