@@ -412,7 +412,7 @@ function log {
 function read_hashes_iocs
 {
     # Save field separator
-    oldIFS=$IFS
+    oldIFS="$IFS"
     IFS=$'\n'
     local index=0
     while read -r line ; do
@@ -432,7 +432,7 @@ function read_hashes_iocs
 function read_string_iocs
 {
     # Save field separator
-    oldIFS=$IFS
+    oldIFS="$IFS"
     IFS=$'\n'
     local index=0
     while read -r line ; do
@@ -457,7 +457,7 @@ function read_string_iocs
 function read_filename_iocs
 {
     # Save field separator
-    oldIFS=$IFS
+    oldIFS="$IFS"
     IFS=$'\n'
     local index=0
     while read -r line ; do
@@ -474,7 +474,7 @@ function read_filename_iocs
 function read_c2_iocs
 {
     # Save field separator
-    oldIFS=$IFS
+    oldIFS="$IFS"
     IFS=$'\n'
     local index=0
     while read -r line ; do
