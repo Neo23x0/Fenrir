@@ -1,2 +1,18 @@
-demo/evil.jsp
-# END - DO NOT REMOVE
+/var/tmp/.pipe.sock
+/code29/.php
+/proxy87/.php
+/usr/share/python2.7/sma.php
+/usr/share/python2.7/theme.php
+/root/theme.php
+/usr/lib/libng/media.php
+/usr/lib/libng/ftpChecker.py
+/usr/lib/libng/dirsearch/
+/usr/share/python2.7/dirsearch/
+/usr/lib/libng/commix/
+/usr/lib/libng/subbrute-master/
+/usr/share/python2.7/sqlmap/
+/usr/lib/libng/sqlmap-dev/
+/usr/lib/libng/wpscan/
+/usr/share/python2.7/wpscan/
+/usr/share/python2.7/Sublist3r/
+# END - DO NOT REM
