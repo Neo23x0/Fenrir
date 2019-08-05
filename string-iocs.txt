@@ -1,4 +1,4 @@
-eval(gzuncompress(base64_decode
-ZXZhbCg
-\x65\x76\x61\x6C\x28\x67
+<%eval request("ice")%>
+1%27%20OR%201%3D1
+&& echo $cn|tee /tmp.c
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets
