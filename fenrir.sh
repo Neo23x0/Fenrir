@@ -29,7 +29,7 @@ DO_C2_CHECK=0
 # Exclusions
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1
-declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys' 'php' 'jspx' 'pl' 'war' 'sh' 'asp' 'aspx' 'jspx'); # use lower-case
+declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys' 'php' 'jspx' 'pl' 'war' 'sh' 'asp' 'aspx' 'jspx' 'log' 'xml'); # use lower-case
 # files in these directories will be checked with string grep
 # regradless of their size and extension
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/media/');

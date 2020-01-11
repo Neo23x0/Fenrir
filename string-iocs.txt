@@ -1,4 +1,7 @@
-<%eval request("ice")%>
-1%27%20OR%201%3D1
-rm /tmp/.c;pkill
+print readpipe(chr(
+chr(112) . chr(121) . chr(116)
+shell_command="whoami"
+shell_command="hostname"
+shell_command="uname"
+/vpn/../vpns/
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets
