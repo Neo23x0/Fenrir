@@ -4,4 +4,5 @@ shell_command="whoami"
 shell_command="hostname"
 shell_command="uname"
 /vpn/../vpns/
+template.new({'BLOCK'='exec(
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets
