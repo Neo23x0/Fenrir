@@ -5,4 +5,7 @@ shell_command="hostname"
 shell_command="uname"
 /vpn/../vpns/
 template.new({'BLOCK'='exec(
+tee /netscaler/portal/templates
+my ($citrixmd
+pwnpzi1337
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets
