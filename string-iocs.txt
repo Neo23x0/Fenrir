@@ -1,4 +1,5 @@
-<%eval request("ice")%>
-1%27%20OR%201%3D1
-rm /tmp/.c;pkill
+diamorphine
+stratum://
+stratum+tcp
+xmrig
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets
