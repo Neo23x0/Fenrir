@@ -517,7 +517,7 @@ echo " v$VERSION"
 echo " "
 echo " Simple Bash IOC Checker"
 echo " Florian Roth"
-echo " July 2017"
+echo " May 2020"
 echo "##############################################################"
 
 if [ "$#" -ne 1 ]; then
