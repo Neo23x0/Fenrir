@@ -4,7 +4,7 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
-VERSION="0.6.0"
+VERSION="0.7.0"
 
 # Settings ------------------------------------------------------------
 SYSTEM_NAME=$(uname -n | tr -d "\n")
@@ -99,9 +99,12 @@ function scan_dirs
                 DO_DATE_CHECK=0
                 DO_FILENAME_CHECK=0
             fi
+            
+            # Check if relevant type
+            relevant_type=$(file "$file_path" | grep -F "ELF")
 
             # Exclude Extensions
-            if [ $CHECK_ONLY_RELEVANT_EXTENSIONS -eq 1 ]; then
+            if [ $CHECK_ONLY_RELEVANT_EXTENSIONS -eq 1 ] && [ "$relevant_type" == "" ]; then
                 result=$(check_extension "$extension")
                 if [ "${result}" -ne 1 ]; then
                     log debug "Deactivating some checks on $file_path due to irrelevant extension ..."
@@ -150,6 +153,7 @@ function scan_dirs
                 md5=$(md5sum "$file_path" 2> /dev/null | cut -f1 -d' ')
                 sha1=$(sha1sum "$file_path" 2> /dev/null | cut -f1 -d' ')
                 sha256=$(shasum -a 256 "$file_path" 2> /dev/null | cut -f1 -d' ')
+                log debug "Checking hashes of file $file_path : $md5"
                 check_hashes "$md5" "$sha1" "$sha256" "$file_path"
             fi
 
