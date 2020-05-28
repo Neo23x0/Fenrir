@@ -4,7 +4,7 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
-VERSION="0.7.0"
+VERSION="0.7.2"
 
 # Settings ------------------------------------------------------------
 SYSTEM_NAME=$(uname -n | tr -d "\n")
@@ -512,12 +512,14 @@ function prepare_check_stings
 # Program -------------------------------------------------------------
 
 echo "##############################################################"
-echo " FENRIR"
+echo "    ____             _     "
+echo "   / __/__ ___  ____(_)___ "
+echo "  / _// -_) _ \/ __/ / __/ "
+echo " /_/  \__/_//_/_/ /_/_/    "
 echo " v$VERSION"
 echo " "
 echo " Simple Bash IOC Checker"
-echo " Florian Roth"
-echo " May 2020"
+echo " Florian Roth, May 2020"
 echo "##############################################################"
 
 if [ "$#" -ne 1 ]; then
