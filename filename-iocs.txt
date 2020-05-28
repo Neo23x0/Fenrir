@@ -1,2 +1,4 @@
 demo/evil.jsp
 # END - DO NOT REMOVE
+/sshkey.php
+/etc/opt/init-file.txt

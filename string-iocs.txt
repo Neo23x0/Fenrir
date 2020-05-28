@@ -1,4 +1,9 @@
-<%eval request("ice")%>
-1%27%20OR%201%3D1
-rm /tmp/.c;pkill
+MAIL FROM:<$(run
+exec\\x20\\x2Fusr\\x2Fbin\\x2Fwget
+AAAAB3NzaC1yc2EAAAADAQABAAABAQC2q/NGN/brzNfJiIp2zswtL33tr74pIAjMeWtXN1p5Hqp5fTp058U1EN4NmgmjX0KzNjjV
+AllowUsers mysql_db
+CREATE USER 'mysqldb'@'localhost' IDENTIFIED BY
+mysql_db:x:
+GIF89a <?php 
+import base64,sys;exec(base64.b64decode(
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets
