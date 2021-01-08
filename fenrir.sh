@@ -4,6 +4,8 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
+# needs bash 4, published 2009
+
 VERSION="0.7.2"
 
 # Settings ------------------------------------------------------------
@@ -49,8 +51,8 @@ DEBUG=0
 # Code ----------------------------------------------------------------
 
 # Global vars
-declare -a hash_iocs
-declare -a hash_ioc_description
+declare -A hash_iocs
+declare -A hash_ioc_description
 declare -a string_iocs
 declare -a check_strings
 declare -a filename_iocs
@@ -152,7 +154,7 @@ function scan_dirs
             if [ $DO_HASH_CHECK -eq 1 ]; then
                 md5=$(md5sum "$file_path" 2> /dev/null | cut -f1 -d' ')
                 sha1=$(sha1sum "$file_path" 2> /dev/null | cut -f1 -d' ')
-                sha256=$(shasum -a 256 "$file_path" 2> /dev/null | cut -f1 -d' ')
+                sha256=$(sha256sum "$file_path" 2> /dev/null | cut -f1 -d' ')
                 log debug "Checking hashes of file $file_path : $md5"
                 check_hashes "$md5" "$sha1" "$sha256" "$file_path"
             fi
@@ -177,23 +179,19 @@ function check_hashes
     local sha1=$2
     local sha256=$3
     local filepath=$4
-    for hash in "${hash_iocs[@]}";
-    do
-        # echo "Comparing $hash with $md5"
-        if [ "$md5" == "$hash" ]; then
-            description=${hash_ioc_description[$index]}
-            log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
-        fi
-        if [ "$sha1" == "$hash" ]; then
-            description=${hash_ioc_description[$index]}
-            log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
-        fi
-        if [ "$sha256" == "$hash" ]; then
-            description=${hash_ioc_description[$index]}
-            log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
-        fi
-        index=$((index+1))
-    done
+
+	if [ ${hash_iocs[$md5]}  ]; then
+		description=${hash_ioc_description[$md5]}
+		log warning "[!] Hash match found FILE: $filepath HASH: $md5 DESCRIPTION: $description"
+	fi
+	if [ ${hash_iocs[$sha1]}  ]; then
+		description=${hash_ioc_description[$sha1]}
+		log warning "[!] Hash match found FILE: $filepath HASH: $sha1 DESCRIPTION: $description"
+	fi
+	if [ ${hash_iocs[$sha256]}  ]; then
+		description=${hash_ioc_description[$index]}
+		log warning "[!] Hash match found FILE: $filepath HASH: $sha256 DESCRIPTION: $description"
+	fi
 }
 
 function check_string
@@ -420,17 +418,19 @@ function read_hashes_iocs
     IFS=$'\n'
     local index=0
     while read -r line ; do
-        hash=$(echo "$line" | cut -f1 -d';')
-        description=$(echo "$line" | cut -f2 -d';')
+		# speedup the reading of the IOCs by avoiding forking 2 cuts for each line and using pattern matching
+        hash=${line%;*}
+        description=${line#*;}
         if [[ -z "${hash// }" ]] ; then
             continue
         fi
-        hash_iocs[$index]="$hash"
-        hash_ioc_description[$index]="$description"
+        hash_iocs[$hash]="1"
+        hash_ioc_description[$hash]="$description"
         # echo "$hash $description"
         index=$((index+1))
     done < $HASH_IOC_FILE
     IFS=$oldIFS
+	print ${hash_iocs}
 }
 
 function read_string_iocs
