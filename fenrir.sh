@@ -4,7 +4,7 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
-VERSION="0.7.2"
+VERSION="0.8.0"
 
 # Settings ------------------------------------------------------------
 SYSTEM_NAME=$(uname -n | tr -d "\n")
@@ -24,7 +24,7 @@ LOG_TO_CMDLINE=1
 SYSLOG_FACILITY=local4
 
 # Disable Checks
-DO_C2_CHECK=0
+DO_C2_CHECK=1
 
 # Exclusions
 MAX_FILE_SIZE=2000 # max file size to check in kilobyte, default 2 MB
@@ -326,13 +326,23 @@ function scan_c2
 {
     oldIFS=$IFS
     IFS=$'\n'
+    echo "in"
     lsof_output=$(lsof -i)
+    echo "out"
     for lsof_line in ${lsof_output}; do
         for c2 in "${c2_iocs[@]}"; do
+            # C2 check
             if [ "${lsof_line/$c2}" != "$lsof_line" ]; then
                 log warning "[!] C2 server found in lsof output SERVER: $c2 LSOF_LINE: $lsof_line"
             fi
         done
+        # Shell Check 
+        if [ "${lsof_line:0:5}" == "bash " ]; then
+            log notice "[!] Bash found in lsof output - could be a back connect shell LSOF_LINE: $lsof_line"
+        fi
+        if [ "${lsof_line:0:3}" == "sh " ]; then
+            log notice "[!] Shell found in lsof output - could be a back connect shell LSOF_LINE: $lsof_line"
+        fi
     done
     lsof_output=$(lsof -i -n)
     for lsof_line in ${lsof_output}; do
