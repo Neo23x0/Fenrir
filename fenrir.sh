@@ -336,14 +336,14 @@ function scan_c2
             fi
         done
         # Shell Check 
-        if [ "${lsof_line:0:5}" == "bash " ]; then
-            log notice "[!] Bash found in lsof output - could be a back connect shell LSOF_LINE: $lsof_line"
-        fi
-        if [ "${lsof_line:0:3}" == "sh " ]; then
-            log notice "[!] Shell found in lsof output - could be a back connect shell LSOF_LINE: $lsof_line"
+        if [ "${lsof_line:0:5}" == "bash " ] || [ "${lsof_line:0:3}" == "sh " ]; then
+            if [ "${lsof_line/127.0.0.1}" == "$lsof_line" ]; then
+                log notice "[!] Shell found in lsof output - could be a back connect shell LSOF_LINE: $lsof_line"
+            fi
         fi
     done
-    lsof_output=$(lsof -i -n)
+    # Resolve names
+    lsof_output=$(lsof -i)
     for lsof_line in ${lsof_output}; do
         for c2 in "${c2_iocs[@]}"; do
             # echo "$lsof_line - $c2"
