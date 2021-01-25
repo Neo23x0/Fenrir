@@ -326,9 +326,8 @@ function scan_c2
 {
     oldIFS=$IFS
     IFS=$'\n'
-    echo "in"
-    lsof_output=$(lsof -i)
-    echo "out"
+    # Don't resolve names
+    lsof_output=$(lsof -i -n)
     for lsof_line in ${lsof_output}; do
         for c2 in "${c2_iocs[@]}"; do
             # C2 check
