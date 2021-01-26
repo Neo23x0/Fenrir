@@ -38,6 +38,9 @@ declare -a FORCED_STRING_MATCH_DIRS=('/var/log/' '/etc/hosts');
 # Exclude all output lines that contain these strings
 declare -a EXCLUDE_STRINGS=('iocs.txt' 'fenrir');
 
+# global var for passing pseudo hash
+declare -i pseudo_h
+
 # Hot Time Frame Check
 MIN_HOT_EPOCH=1444163570 # minimum Unix epoch for hot time frame e.g. 1444160522
 MAX_HOT_EPOCH=1444163590 # maximum Unix epoch for hot time frame e.g. 1444160619
@@ -50,6 +53,7 @@ DEBUG=0
 
 # Global vars
 declare -a hash_iocs
+declare -a pseudo_hash_iocs
 declare -a hash_ioc_description
 declare -a string_iocs
 declare -a check_strings
@@ -151,10 +155,12 @@ function scan_dirs
             # Hash Check
             if [ $DO_HASH_CHECK -eq 1 ]; then
                 md5=$(md5sum "$file_path" 2> /dev/null | cut -f1 -d' ')
+                #md5tmp=$(md5sum "$file_path" 2> /dev/null)
+                #md5=${md5tmp%% *}
                 sha1=$(sha1sum "$file_path" 2> /dev/null | cut -f1 -d' ')
-                sha256=$(shasum -a 256 "$file_path" 2> /dev/null | cut -f1 -d' ')
+                sha256=$(sha256sum "$file_path" 2> /dev/null | cut -f1 -d' ')
                 log debug "Checking hashes of file $file_path : $md5"
-                check_hashes "$md5" "$sha1" "$sha256" "$file_path"
+                check_pseudo_hashes "$md5" "$sha1" "$sha256" "$file_path"
             fi
 
             # Date Check
@@ -170,28 +176,50 @@ function scan_dirs
 
 # Check Functions -----------------------------------------------------
 
-function check_hashes
+function check_pseudo_hashes
 {
-    local index=0
     local md5=$1
     local sha1=$2
     local sha256=$3
     local filepath=$4
+
+	hashes=(${md5} ${sha1} ${sha256})
+	for hash in "${hashes[@]}";
+	do
+		pseudo_hash "$hash"
+		if [ -n "${pseudo_hash_iocs[$pseudo_h]}" ]; then
+			# TODO change to "log debug"
+			log warning "[+] Pseudo hash match on $file_path pseudo hash: $pseudo_h real hash will be checked now: $hash"
+
+			check_hashes "$hash" "$file_path"
+		fi
+	done
+}
+
+function check_hashes
+{
+    local index=0
+	local check_hash=$1
+    #local md5=$1
+    #local sha1=$2
+    #local sha256=$3
+    local filepath=$2
+
     for hash in "${hash_iocs[@]}";
     do
         # echo "Comparing $hash with $md5"
-        if [ "$md5" == "$hash" ]; then
+        if [ "$check_hash" == "$hash" ]; then
             description=${hash_ioc_description[$index]}
             log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
         fi
-        if [ "$sha1" == "$hash" ]; then
-            description=${hash_ioc_description[$index]}
-            log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
-        fi
-        if [ "$sha256" == "$hash" ]; then
-            description=${hash_ioc_description[$index]}
-            log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
-        fi
+        #if [ "$sha1" == "$hash" ]; then
+            #description=${hash_ioc_description[$index]}
+            #log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
+        #fi
+        #if [ "$sha256" == "$hash" ]; then
+            #description=${hash_ioc_description[$index]}
+            #log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
+        #fi
         index=$((index+1))
     done
 }
@@ -422,6 +450,22 @@ function log {
 
 # READ IOCS -----------------------------------------------------------
 
+function pseudo_hash {
+	local hash=$1
+	#echo hash: $hash
+	pseudo_h=1
+
+	# max 32bit = 1..10
+	for lola in {1..10};
+	do
+		pseudo_h+=$((${hash:lola:1}*10**lola))
+	done
+
+	# use global var to save the fork of /bin/echo
+	#echo $pseudo_h
+}		
+
+
 function read_hashes_iocs
 {
     # Save field separator
@@ -429,13 +473,27 @@ function read_hashes_iocs
     IFS=$'\n'
     local index=0
     while read -r line ; do
-        hash=$(echo "$line" | cut -f1 -d';')
-        description=$(echo "$line" | cut -f2 -d';')
+        #hash=$(echo "$line" | cut -f1 -d';')
+        #description=$(echo "$line" | cut -f2 -d';')
+		hash=${line%;*}
         if [[ -z "${hash// }" ]] ; then
             continue
         fi
-        hash_iocs[$index]="$hash"
-        hash_ioc_description[$index]="$description"
+
+        # Skip comments
+        if [[ $line == \#* ]] ; then
+            continue
+        fi
+        description=${line#*;}
+
+		hash_iocs[$index]="$hash"
+		hash_ioc_description[$index]="$description"
+
+		# changes global var $pseudo_h
+		pseudo_hash "$hash"
+		# assigning the real hash value to the pseudo hash array. beware: there might be collisions so only the last one is in there!
+		pseudo_hash_iocs[$pseudo_h]=$hash
+
         # echo "$hash $description"
         index=$((index+1))
     done < $HASH_IOC_FILE
