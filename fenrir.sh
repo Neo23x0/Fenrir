@@ -453,13 +453,9 @@ function log {
 function pseudo_hash {
 	local hash=$1
 	#echo hash: $hash
-	pseudo_h=1
 
-	# max 32bit = 1..10
-	for lola in {1..10};
-	do
-		pseudo_h+=$((${hash:lola:1}*10**lola))
-	done
+	short_hash="0x${hash:0:8}"
+	let pseudo_h=$(($short_hash))
 
 	# use global var to save the fork of /bin/echo
 	#echo $pseudo_h
