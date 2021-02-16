@@ -1,6 +1,8 @@
-eval request(
-bash -i >/dev/tcp/
-chmod +x /tmp/
-() { :; };
-packed with the UPX executable packer
+/tmp/.applock
+.substr(md5(strrev(
+Archive created by P.A.S.
+socket(SOCKET, PF_INET, SOCK_STREAM,$tcp) or die print
+SQL Dump created by P.A.S.
+odhyrfjcnfkdtslt
+configtx.json
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets

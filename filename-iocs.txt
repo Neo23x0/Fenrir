@@ -1,2 +1,9 @@
 demo/evil.jsp
 # END - DO NOT REMOVE
+/tmp/.applocktx
+/tmp/.applock$
+/usr/local/centreon/www/search.php
+/usr/share/centreon/www/search.php
+/usr/share/centreon/www/modules/Discovery/include/DB−Drop.php
+/usr/share/centreon/www/htmlHeader.php
+/configtx\.json
