@@ -1,6 +1,36 @@
-eval request(
-bash -i >/dev/tcp/
-chmod +x /tmp/
-() { :; };
-packed with the UPX executable packer
+${jndi:ldap:/
+${jndi:rmi:/
+${jndi:ldaps:/
+${jndi:dns:/
+/$%7bjndi:
+%24%7bjndi:
+$%7Bjndi:
+%2524%257Bjndi
+%2F%252524%25257Bjndi%3A
+${jndi:${lower:
+${::-j}${
+${jndi:nis
+${jndi:nds
+${jndi:corba
+${jndi:iiop
+${${env:BARFOO:-j}
+${::-l}${::-d}${::-a}${::-p}
+${base64:JHtqbmRp
+/Basic/Command/Base64/
+* * * wget
+* * * curl
+bingsearchlib.com
+34.198.182.201
+canarytokens.com
+52.18.63.80
+log4j.binaryedge.io
+134.209.163.248
+leakix.net
+167.71.13.196
+dnslog.cn
+47.244.138.18
+kryptoslogic-cve-2021-44228.com
+167.99.86.185
+interact.sh
+46.101.25.250
 # END - DO NOT REMOVE - contents passed to grep - double escape square brackets

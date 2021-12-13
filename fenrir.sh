@@ -4,7 +4,7 @@
 # Simple Bash IOC Checker
 # Florian Roth
 
-VERSION="0.8.0"
+VERSION="0.9.0-log4shell"
 
 # Settings ------------------------------------------------------------
 SYSTEM_NAME=$(uname -n | tr -d "\n")
@@ -23,18 +23,20 @@ LOG_TO_SYSLOG=0 # Log to syslog is set to 'off' by default > false positives
 LOG_TO_CMDLINE=1
 SYSLOG_FACILITY=local4
 
-# Disable Checks
-DO_C2_CHECK=1
+# Enable / Disable Checks
+ENABLE_C2_CHECK=1
+ENABLE_TYPE_CHECK=1
+ENABLE_HASH_CHECK=1
 
 # Exclusions
 MAX_FILE_SIZE=8000 # max file size to check in kilobyte, default 2 MB
 CHECK_ONLY_RELEVANT_EXTENSIONS=1 # ELF binaries get always checked
-declare -a RELEVANT_EXTENSIONS=('exe' 'jsp' 'dll' 'txt' 'js' 'vbs' 'bat' 'tmp' 'dat' 'sys' 'php' 'jspx' 'pl' 'war' 'sh' 'asp' 'aspx' 'jspx'); # use lower-case
+declare -a RELEVANT_EXTENSIONS=('jsp' 'jspx' 'txt' 'tmp' 'pl' 'war' 'sh' 'log' 'jar'); # use lower-case
 # files in these directories will be checked with string grep
 # regradless of their size and extension
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/media/');
 # Force Checks
-declare -a FORCED_STRING_MATCH_DIRS=('/var/log/' '/etc/hosts');
+declare -a FORCED_STRING_MATCH_DIRS=('/var/log/' '/etc/hosts' '/etc/crontab');
 # Exclude all output lines that contain these strings
 declare -a EXCLUDE_STRINGS=('iocs.txt' 'fenrir');
 
@@ -105,7 +107,9 @@ function scan_dirs
             fi
             
             # Check if relevant type
-            relevant_type=$(file "$file_path" | grep -F "ELF")
+            if [ $ENABLE_TYPE_CHECK -eq 1 ]; then
+                relevant_type=$(file "$file_path" | grep -F "ELF")
+            fi
 
             # Exclude Extensions
             if [ $CHECK_ONLY_RELEVANT_EXTENSIONS -eq 1 ] && [ "$relevant_type" == "" ]; then
@@ -153,7 +157,7 @@ function scan_dirs
             fi
 
             # Hash Check
-            if [ $DO_HASH_CHECK -eq 1 ]; then
+            if [ $DO_HASH_CHECK -eq 1 ] && [ $ENABLE_HASH_CHECK -eq 1 ]; then
                 md5=$(md5sum "$file_path" 2> /dev/null | cut -f1 -d' ')
                 #md5tmp=$(md5sum "$file_path" 2> /dev/null)
                 #md5=${md5tmp%% *}
@@ -183,17 +187,17 @@ function check_pseudo_hashes
     local sha256=$3
     local filepath=$4
 
-	hashes=(${md5} ${sha1} ${sha256})
-	for hash in "${hashes[@]}";
-	do
-		pseudo_hash "$hash"
-		if [ -n "${pseudo_hash_iocs[$pseudo_h]}" ]; then
-			# TODO change to "log debug"
-			log warning "[+] Pseudo hash match on $file_path pseudo hash: $pseudo_h real hash will be checked now: $hash"
+    hashes=(${md5} ${sha1} ${sha256})
+    for hash in "${hashes[@]}";
+        do
+        pseudo_hash "$hash"
+        if [ -n "${pseudo_hash_iocs[$pseudo_h]}" ]; then
+            # TODO change to "log debug"
+            log debug "[+] Pseudo hash match on $file_path pseudo hash: $pseudo_h real hash will be checked now: $hash"
 
-			check_hashes "$hash" "$file_path"
-		fi
-	done
+            check_hashes "$hash" "$file_path"
+        fi
+    done
 }
 
 function check_hashes
@@ -207,7 +211,7 @@ function check_hashes
 
     for hash in "${hash_iocs[@]}";
     do
-        # echo "Comparing $hash with $md5"
+        #echo "Comparing $hash with $md5"
         if [ "$check_hash" == "$hash" ]; then
             description=${hash_ioc_description[$index]}
             log warning "[!] Hash match found FILE: $filepath HASH: $hash DESCRIPTION: $description"
@@ -451,14 +455,14 @@ function log {
 # READ IOCS -----------------------------------------------------------
 
 function pseudo_hash {
-	local hash=$1
-	#echo hash: $hash
+    local hash=$1
+    #echo hash: $hash
 
-	short_hash="0x${hash:0:8}"
-	let pseudo_h=$(($short_hash))
+    short_hash="0x${hash:0:8}"
+    let pseudo_h=$(($short_hash))
 
-	# use global var to save the fork of /bin/echo
-	#echo $pseudo_h
+    # use global var to save the fork of /bin/echo
+    #echo $pseudo_h
 }		
 
 
@@ -471,7 +475,7 @@ function read_hashes_iocs
     while read -r line ; do
         #hash=$(echo "$line" | cut -f1 -d';')
         #description=$(echo "$line" | cut -f2 -d';')
-		hash=${line%;*}
+        hash=${line%;*}
         if [[ -z "${hash// }" ]] ; then
             continue
         fi
@@ -482,13 +486,14 @@ function read_hashes_iocs
         fi
         description=${line#*;}
 
-		hash_iocs[$index]="$hash"
-		hash_ioc_description[$index]="$description"
+        hash_iocs[$index]="$hash"
+        hash_ioc_description[$index]="$description"
 
-		# changes global var $pseudo_h
-		pseudo_hash "$hash"
-		# assigning the real hash value to the pseudo hash array. beware: there might be collisions so only the last one is in there!
-		pseudo_hash_iocs[$pseudo_h]=$hash
+        # changes global var $pseudo_h
+        pseudo_hash "$hash"
+        # assigning the real hash value to the pseudo hash array. beware: there might be collisions so only the last one is in there!
+        #echo $pseudo_h
+        pseudo_hash_iocs[$pseudo_h]=$hash
 
         # echo "$hash $description"
         index=$((index+1))
@@ -572,6 +577,27 @@ function prepare_check_stings
     )
 }
 
+function check_req 
+{
+    log info "Checking the required utilities ..."
+    file_avail=$(command -v file)
+    if [[ -z $file_avail ]]; then 
+        log error "The 'file' command can't be found (disabling file type checks)"
+        ENABLE_TYPE_CHECK=0
+    fi
+    lsof_avail=$(command -v lsof)
+    if [[ -z $lsof_avail ]]; then 
+        log error "The 'lsof' command can't be found (disabling C2 checks)"
+        ENABLE_C2_CHECK=0
+    fi
+    md5sum_avail=$(command -v md5sum)
+    if [[ -z $md5sum_avail ]]; then 
+        log error "The 'md5sum' command can't be found (disabling hash checks)"
+        ENABLE_HASH_CHECK=0
+    fi
+}
+
+
 # Program -------------------------------------------------------------
 
 echo "##############################################################"
@@ -582,7 +608,7 @@ echo " /_/  \__/_//_/_/ /_/_/    "
 echo " v$VERSION"
 echo " "
 echo " Simple Bash IOC Checker"
-echo " Florian Roth, May 2020"
+echo " Florian Roth, Dec 2021"
 echo "##############################################################"
 
 if [ "$#" -ne 1 ]; then
@@ -615,6 +641,9 @@ log info "KERNEL: $OS_KERNEL"
 # Evaluate which stat mode to use
 evaluate_stat_mode
 
+# Check requirements
+check_req
+
 # Read all IOCs
 log info "[+] Reading Hash IOCs ..."
 read_hashes_iocs
@@ -627,7 +656,7 @@ log info "[+] Reading C2 IOCs ..."
 read_c2_iocs
 
 # Now scan the given first parameter
-if [ $DO_C2_CHECK -eq 1 ]; then
+if [ $ENABLE_C2_CHECK -eq 1 ]; then
     log info "[+] Scanning for C2 servers in 'lsof' output ..."
     scan_c2
 fi
