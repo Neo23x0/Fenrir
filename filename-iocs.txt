@@ -1,3 +1,2 @@
-demo/evil.jsp
+log4j-core
 # END - DO NOT REMOVE
-/log4j-core
