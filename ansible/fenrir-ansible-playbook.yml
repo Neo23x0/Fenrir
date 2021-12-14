@@ -1,22 +1,58 @@
 ---
-- hosts: Linux
-  remote_user: root
+- hosts: all
 
   tasks:
-    - name: Create folder for temporary RAM drive
-      command: mkdir /mnt/temp_ram creates=/mnt/temp_ram
-    - name: Create Fenrir RAM drive on target
-      command: mount -t ramfs -o size=30M ramfs /mnt/temp_ram/
-    - name: Copy Fenrir to RAM drive
-      copy: src=/home/control/Ansible/Fenrir/ dest=/mnt/temp_ram/
-    - name: Make Fenrir Executeable
-      file: path=/mnt/temp_ram/fenrir.sh state=touch mode="0555"
-    - name: Execute Fenrir
-      command: /mnt/temp_ram/fenrir.sh / > /mnt/temp_ram/fenrir.log
-    - name: Fetch Log file
-      fetch: src=/mnt/temp_ram/fenrir.log dest=./
-    - name: Unmount temporary RAM drive
-      command: umount /mnt/temp_ram/
-    - name: Delete folder for temporary RAM drive
-      command: rmdir /mnt/temp_ram/
+    - name: Fenrir
+      block:
+        - name: Create folder for temporary RAM drive
+          ansible.builtin.file:
+            path: /mnt/temp_ram
+            state: directory
+            owner: root
+            group: root
+            mode: "u=rwx,g=,o="
 
+        - name: Create Fenrir RAM drive on target
+          ansible.posix.mount:
+            path: /mnt/temp_ram/
+            src: ramfs
+            fstype: ramfs
+            opts: size=30M
+            state: mounted
+
+        # copy is slow, but synchronize doesn't work with `become: yes`
+        # I suppose using `become: no` is an option, if /mnt/temp_ram was owned
+        # by {{ ansible_user }}
+        - name: Copy Fenrir to RAM drive
+          ansible.builtin.copy:
+            src: "{{ playbook_dir }}/.."
+            dest: /mnt/temp_ram/
+            owner: root
+            group: root
+
+        - name: Make Fenrir Executeable
+          ansible.builtin.file:
+            path: /mnt/temp_ram/fenrir.sh
+            state: touch
+            mode: "u=rx,g=rx,o=rx"
+
+        - name: Execute Fenrir
+          shell:
+            cmd: /mnt/temp_ram/fenrir.sh / > /mnt/temp_ram/fenrir.log
+
+        - name: Fetch Log file
+          ansible.builtin.fetch:
+            src: /mnt/temp_ram/fenrir.log
+            dest: ./
+
+        - name: Unmount temporary RAM drive
+          ansible.posix.mount:
+            path: /mnt/temp_ram/
+            state: unmounted
+
+        - name: Delete folder for temporary RAM drive
+          ansible.builtin.file:
+            path: /mnt/temp_ram/
+            state: absent
+      become: yes
+      when: ansible_system == "Linux"
