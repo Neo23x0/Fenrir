@@ -35,6 +35,7 @@ declare -a RELEVANT_EXTENSIONS=('jsp' 'jspx' 'txt' 'tmp' 'pl' 'war' 'sh' 'log' '
 # files in these directories will be checked with string grep
 # regradless of their size and extension
 declare -a EXCLUDED_DIRS=('/proc/' '/initctl/' '/dev/' '/media/');
+declare -a EXCLUDED_OUTER_DIRS=('/OneDrive' '/Google Drive' '/Dropbox')
 # Force Checks
 declare -a FORCED_STRING_MATCH_DIRS=('/var/log/' '/etc/hosts' '/etc/crontab');
 # Exclude all output lines that contain these strings
@@ -79,100 +80,106 @@ function scan_dirs
     # Loop through files
     find "$scandir" -type f 2> /dev/null | while read -r file_path
     do
-        if [ -f "${file_path}" ]; then
+        # Excluded Directories
+        result=$(check_dir "$file_path")
+        if [ "${result}" -eq 1 ]; then
+            log debug "Skipping $file_path due to exclusion ..."
+        else
 
-            # Debug Output --------------------------------------------
-            log debug "Scanning $file_path ..."
+            if [ -f "${file_path}" ]; then
 
-            # Marker --------------------------------------------------
-            DO_STRING_CHECK=1
-            DO_HASH_CHECK=1
-            DO_DATE_CHECK=1
-            DO_FILENAME_CHECK=1
+                # Debug Output --------------------------------------------
+                log debug "Scanning $file_path ..."
+                echo "Scanning $file_path ..."
+                # Marker --------------------------------------------------
+                DO_STRING_CHECK=1
+                DO_HASH_CHECK=1
+                DO_DATE_CHECK=1
+                DO_FILENAME_CHECK=1
 
-            # Evaluations ---------------------------------------------
-            file_name=$(basename "$file_path")
-            extension="${file_name##*.}"
+                # Evaluations ---------------------------------------------
+                file_name=$(basename "$file_path")
+                extension="${file_name##*.}"
 
-            # Checks to disable modules -------------------------------
+                # Checks to disable modules -------------------------------
 
-            # Excluded Directories
-            result=$(check_dir "$file_path")
-            if [ "${result}" -eq 1 ]; then
-                log debug "Skipping $file_path due to exclusion ..."
-                DO_STRING_CHECK=0
-                DO_HASH_CHECK=0
-                DO_DATE_CHECK=0
-                DO_FILENAME_CHECK=0
-            fi
-            
-            # Check if relevant type
-            if [ $ENABLE_TYPE_CHECK -eq 1 ]; then
-                relevant_type=$(file "$file_path" | grep -F "ELF")
-            fi
+                # Excluded Directories
+                result=$(check_dir "$file_path")
+                if [ "${result}" -eq 1 ]; then
+                    log debug "Skipping $file_path due to exclusion ..."
+                    DO_STRING_CHECK=0
+                    DO_HASH_CHECK=0
+                    DO_DATE_CHECK=0
+                    DO_FILENAME_CHECK=0
+                fi
+                
+                # Check if relevant type
+                if [ $ENABLE_TYPE_CHECK -eq 1 ]; then
+                    relevant_type=$(file "$file_path" | grep -F "ELF")
+                fi
 
-            # Exclude Extensions
-            if [ $CHECK_ONLY_RELEVANT_EXTENSIONS -eq 1 ] && [ "$relevant_type" == "" ]; then
-                result=$(check_extension "$extension")
-                if [ "${result}" -ne 1 ]; then
-                    log debug "Deactivating some checks on $file_path due to irrelevant extension ..."
+                # Exclude Extensions
+                if [ $CHECK_ONLY_RELEVANT_EXTENSIONS -eq 1 ] && [ "$relevant_type" == "" ]; then
+                    result=$(check_extension "$extension")
+                    if [ "${result}" -ne 1 ]; then
+                        log debug "Deactivating some checks on $file_path due to irrelevant extension ..."
+                        DO_STRING_CHECK=0
+                        DO_HASH_CHECK=0
+                    fi
+                fi
+
+                # Check Size
+                filesize=$(du -k "$file_path" | cut -f1)
+                if [ "${filesize}" -gt $MAX_FILE_SIZE ]; then
+                    log debug "Deactivating some checks on $file_path due to size"
                     DO_STRING_CHECK=0
                     DO_HASH_CHECK=0
                 fi
-            fi
 
-            # Check Size
-            filesize=$(du -k "$file_path" | cut -f1)
-            if [ "${filesize}" -gt $MAX_FILE_SIZE ]; then
-                log debug "Deactivating some checks on $file_path due to size"
-                DO_STRING_CHECK=0
-                DO_HASH_CHECK=0
-            fi
+                # Checks to include modules -------------------------------
 
-            # Checks to include modules -------------------------------
+                # Forced string check directory
+                for fsm_dir in "${FORCED_STRING_MATCH_DIRS[@]}";
+                do
+                    # echo "Checking if $ex_dir is in $dir"
+                    # The following check matches when $fsm_dir is ANYWHERE in the
+                    # $file_path, not only at the beginning. As we're just doing
+                    # more checks in that case, we don't care
+                    if [ "${file_path/$fsm_dir}" != "$file_path" ]; then
+                        DO_STRING_CHECK=1
+                        log debug "Activating string check on $file_name"
+                    fi
+                done
 
-            # Forced string check directory
-            for fsm_dir in "${FORCED_STRING_MATCH_DIRS[@]}";
-            do
-                # echo "Checking if $ex_dir is in $dir"
-                # The following check matches when $fsm_dir is ANYWHERE in the
-                # $file_path, not only at the beginning. As we're just doing
-                # more checks in that case, we don't care
-                if [ "${file_path/$fsm_dir}" != "$file_path" ]; then
-                    DO_STRING_CHECK=1
-                    log debug "Activating string check on $file_name"
+                # Checks --------------------------------------------------
+
+                # File Name Check
+                if [ $DO_FILENAME_CHECK -eq 1 ]; then
+                    check_filename "$file_path"
                 fi
-            done
 
-            # Checks --------------------------------------------------
+                # String Check
+                if [ $DO_STRING_CHECK -eq 1 ]; then
+                    check_string "$file_path" "$extension"
+                fi
 
-            # File Name Check
-            if [ $DO_FILENAME_CHECK -eq 1 ]; then
-                check_filename "$file_path"
-            fi
+                # Hash Check
+                if [ $DO_HASH_CHECK -eq 1 ] && [ $ENABLE_HASH_CHECK -eq 1 ]; then
+                    md5=$(md5sum "$file_path" 2> /dev/null | cut -f1 -d' ')
+                    #md5tmp=$(md5sum "$file_path" 2> /dev/null)
+                    #md5=${md5tmp%% *}
+                    sha1=$(sha1sum "$file_path" 2> /dev/null | cut -f1 -d' ')
+                    sha256=$(sha256sum "$file_path" 2> /dev/null | cut -f1 -d' ')
+                    log debug "Checking hashes of file $file_path : $md5"
+                    check_pseudo_hashes "$md5" "$sha1" "$sha256" "$file_path"
+                fi
 
-            # String Check
-            if [ $DO_STRING_CHECK -eq 1 ]; then
-                check_string "$file_path" "$extension"
-            fi
-
-            # Hash Check
-            if [ $DO_HASH_CHECK -eq 1 ] && [ $ENABLE_HASH_CHECK -eq 1 ]; then
-                md5=$(md5sum "$file_path" 2> /dev/null | cut -f1 -d' ')
-                #md5tmp=$(md5sum "$file_path" 2> /dev/null)
-                #md5=${md5tmp%% *}
-                sha1=$(sha1sum "$file_path" 2> /dev/null | cut -f1 -d' ')
-                sha256=$(sha256sum "$file_path" 2> /dev/null | cut -f1 -d' ')
-                log debug "Checking hashes of file $file_path : $md5"
-                check_pseudo_hashes "$md5" "$sha1" "$sha256" "$file_path"
-            fi
-
-            # Date Check
-            if [ $CHECK_FOR_HOT_TIMEFRAME -eq 1 ] && [ $DO_DATE_CHECK -eq 1 ]; then
-                check_date "$file_path"
+                # Date Check
+                if [ $CHECK_FOR_HOT_TIMEFRAME -eq 1 ] && [ $DO_DATE_CHECK -eq 1 ]; then
+                    check_date "$file_path"
+                fi
             fi
         fi
-
 
     done
     IFS=$oldIFS
@@ -350,6 +357,16 @@ function check_dir
             result=1
         fi
     done
+
+    for ex_dir in "${EXCLUDED_OUTER_DIRS[@]}";
+    do
+        if [[ "$dir" == *"$ex_dir"* ]];then
+            log debug "Skipping $dir due to outer exclusion of $ex_dir in the middle of the path..."
+            result=1
+        fi
+        
+    done
+
     echo $result
 }
 
